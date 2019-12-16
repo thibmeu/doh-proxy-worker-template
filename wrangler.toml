@@ -1,0 +1,5 @@
+name = "paris"
+type = "webpack"
+account_id = "b876f723983198faef861eaaefaef51f"
+workers_dev = true
+webpack_config = "webpack.config.js"

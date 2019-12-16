@@ -1,0 +1,27 @@
+{
+    "private": true,
+    "name": "doh-ethereum",
+    "version": "1.0.0",
+    "description": "A template for kick starting a Cloudflare Workers project",
+    "main": "src/index.js",
+    "scripts": {
+        "build": "wrangler build",
+        "deploy": "wrangler publish",
+        "format": "prettier --write '**/*.{js,css,json,md}'",
+        "start": "wrangler preview",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Thibault <contact@thibaultmeunier.com>",
+    "license": "MIT",
+    "devDependencies": {
+        "@cloudflare/wrangler": "1.6.0",
+        "prettier": "^1.18.2"
+    },
+    "dependencies": {
+        "@ensdomains/resolver": "^0.1.13",
+        "@ethersproject/abi": "^5.0.0-beta.142",
+        "ethereum-ens": "^0.7.8",
+        "ethers": "^5.0.0-beta.162",
+        "ethers-ens": "^0.2.1"
+    }
+}
