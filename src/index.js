@@ -1,4 +1,4 @@
-import { Eth } from './Eth'
+import { ENS } from './ENS'
 
 addEventListener('fetch', event => {
     // event.respondWith(handleRequest(event.request))
@@ -27,12 +27,15 @@ const resolvers = {
     },
     '.eth': async request => {
         const ETH_PROVIDER_URL = 'https://cloudflare-eth.com'
-        const provider = Eth(ETH_PROVIDER_URL)
+        const ens = ENS(ETH_PROVIDER_URL)
 
         let url = new URL(request.url)
         let query = DNSQuery(url.search)
+        let namehash = ens.hash(query.name)
+        let resolver = await ens.getResolver(namehash)
+        let contentHash = await ens.getContentHash(resolver, namehash)
 
-        return new Response(JSON.stringify(await provider.getAddress(query.name)))
+        return new Response(JSON.stringify(contentHash))
     },
 }
 const handleRequest = request => {

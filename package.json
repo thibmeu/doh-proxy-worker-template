@@ -20,8 +20,7 @@
     "dependencies": {
         "@ensdomains/resolver": "^0.1.13",
         "@ethersproject/abi": "^5.0.0-beta.142",
-        "ethereum-ens": "^0.7.8",
-        "ethers": "^5.0.0-beta.162",
-        "ethers-ens": "^0.2.1"
+        "@ethersproject/strings": "^5.0.0-beta.135",
+        "eth-ens-namehash": "^2.0.8"
     }
 }
