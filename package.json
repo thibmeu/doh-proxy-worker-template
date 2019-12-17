@@ -20,7 +20,7 @@
     "dependencies": {
         "@ensdomains/resolver": "^0.1.13",
         "@ethersproject/abi": "^5.0.0-beta.142",
-        "@ethersproject/strings": "^5.0.0-beta.135",
+        "content-hash": "^2.5.2",
         "eth-ens-namehash": "^2.0.8"
     }
 }
