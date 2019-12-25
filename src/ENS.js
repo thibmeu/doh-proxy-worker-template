@@ -4,6 +4,7 @@ import { Interface } from '@ethersproject/abi'
 import contentHash from 'content-hash'
 import namehash from 'eth-ens-namehash'
 import * as DNS from './DNS'
+import * as IPFS from './IPFS'
 
 const registry = new Interface(registryContract)
 const resolver = new Interface(resolverContract)
@@ -41,7 +42,17 @@ export const getContentHash = async(provider_url, node) =>
 export const getResolver = (provider_url) =>
     methodToFunction(provider_url, { contract: registry, method: 'resolver', to: ENS_REGISTRY })
 
+export const SupportedRecord = ['A', 'AAAA', 'CNAME']
+
 export const getDNS = (provider_url, name) => ({
+    ...Object.fromEntries(
+        SupportedRecord.map(record => [
+            record,
+            () =>
+            DNS.lookup(IPFS.DefaultProvider, record)
+            .then(r => r.Answer.map(a => ({...a, name: `${name}.` })))
+        ])
+    ),
     TXT: async() => {
         let node = hash(name)
         let chBinary = await getContentHash(provider_url, node)
@@ -52,10 +63,10 @@ export const getDNS = (provider_url, name) => ({
         ].map(rec => ({
             name: name,
             type: DNS.OpCodes['TXT'],
-            TTL: DNS.DEFAULT_TTL,
+            TTL: DNS.DefaultTtl,
             data: rec,
         }))
-    }
+    },
 })
 
 export const ENS = provider_url => ({

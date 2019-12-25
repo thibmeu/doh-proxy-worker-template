@@ -15,14 +15,9 @@ const DNSQuery = query =>
 
 const resolvers = {
     'default': async request => {
-        const DOH_URL = 'https://cloudflare-dns.com/dns-query'
-        let url = new URL(`${DOH_URL}${new URL(request.url).search}`)
+        let url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
 
-        const r = new Request(url.href, {
-            headers: request.headers,
-            method: request.method,
-            body: request.body,
-        })
+        const r = new Request(url.href, request)
         return fetch(r)
     },
     '.eth': async request => {
@@ -46,12 +41,21 @@ const resolvers = {
             Answer: answer,
         }
 
-        return new Response(JSON.stringify(res))
+        return new Response(JSON.stringify(res), { headers: { 'Content-Type': 'application/dns-json' } })
     },
 }
-const handleRequest = request => {
+const handleRequest = async request => {
     let url = new URL(request.url)
     let query = DNSQuery(url.search)
+
+    // because I cannot decrypt the domain yet, I can't distinguish between .eth and others
+    if (request.headers.get('content-type') === 'application/dns-message') {
+        return resolvers.default(request)
+    }
+
+    if (!query.name || !query.type) {
+        return new Response('A valid query name must be set.', { status: 400 })
+    }
 
     let resolverKey = Object.keys(resolvers).find(key => query.name.endsWith(key))
     if (resolverKey) {

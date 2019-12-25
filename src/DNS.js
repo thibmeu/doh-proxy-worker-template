@@ -1,4 +1,6 @@
-export const DEFAULT_TTL = 3600
+export const DOHUrl = 'https://cloudflare-dns.com/dns-query'
+
+export const DefaultTtl = 3600
 
 // from https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4
 export const OpCodes = {
@@ -90,4 +92,21 @@ export const OpCodes = {
     "TA": "32768",
     "DLV": "32769",
     "Reserved": "65535"
+}
+
+// TODO: DNS Wireformat
+export const lookup = async(name, type, json = true) => {
+    let search = {
+        name: name,
+        type: Object.keys(OpCodes).find(k => OpCodes[k] === type) || type,
+    }
+    search = Object.entries(search).map(c => c.map(p => encodeURIComponent(p)).join('=')).join('&')
+    let options = {
+        method: json ? 'GET' : 'POST',
+        headers: { accept: json ? 'application/dns-json' : 'application/dns-message' }
+    }
+    return fetch(`${DOHUrl}?${search}`, options)
+        .then(r => r.text()) // becauseb dns-json is not json
+        .then(r => decodeURIComponent(r).replace(/\\\//gi, '/').replace(/\\\:/gi, ':'))
+        .then(r => JSON.parse(r))
 }
