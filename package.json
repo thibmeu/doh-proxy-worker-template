@@ -1,26 +1,35 @@
 {
-    "private": true,
-    "name": "doh-ethereum",
-    "version": "1.0.0",
-    "description": "A template for kick starting a Cloudflare Workers project",
-    "main": "src/index.js",
-    "scripts": {
-        "build": "wrangler build",
-        "deploy": "wrangler publish",
-        "format": "prettier --write '**/*.{js,css,json,md}'",
-        "start": "wrangler preview",
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "author": "Thibault <contact@thibaultmeunier.com>",
-    "license": "MIT",
-    "devDependencies": {
-        "@cloudflare/wrangler": "1.6.0",
-        "prettier": "^1.18.2"
-    },
-    "dependencies": {
-        "@ensdomains/resolver": "^0.1.13",
-        "@ethersproject/abi": "^5.0.0-beta.142",
-        "content-hash": "^2.5.2",
-        "eth-ens-namehash": "^2.0.8"
-    }
+  "private": true,
+  "name": "doh-ethereum",
+  "version": "1.0.0",
+  "description": "A template for kick starting a Cloudflare Workers project",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "wrangler build",
+    "deploy": "wrangler publish",
+    "format": "prettier --write '**/*.{ts,js,css,json,md}'",
+    "start": "wrangler preview",
+    "test": "jest"
+  },
+  "author": "Thibault <contact@thibaultmeunier.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/wrangler": "1.6.0",
+    "@types/jest": "^24.0.25",
+    "jest": "^24.9.0",
+    "prettier": "^1.19.1",
+    "ts-jest": "^24.2.0"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^1.0.6",
+    "@ensdomains/resolver": "^0.1.13",
+    "@ethersproject/abi": "^5.0.0-beta.142",
+    "@types/node": "^13.1.1",
+    "content-hash": "^2.5.2",
+    "eth-ens-namehash": "^2.0.8",
+    "source-map-loader": "^0.2.4",
+    "source-map-support": "^0.5.16",
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.7.4"
+  }
 }
