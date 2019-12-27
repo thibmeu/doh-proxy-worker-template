@@ -1,18 +1,9 @@
-const Bytes = new Array(8).fill(1).map((v, i) => v << i)
+import {checkBit, twoBytesNumber} from '../utils/bytes'
+import {charToNumber} from '../utils'
 
-const charToNumber = (c: string) => c.charCodeAt(0)
+const HEADER_LENGTH = 12
 
-const checkBit = (byte: string, index: number) =>
-  (charToNumber(byte) & Bytes[index]) === Bytes[index]
-
-const twoBytesNumber = (bin: string, index: number) =>
-  (charToNumber(bin[index]) << 8) | charToNumber(bin[index + 1])
-
-const btou = (str: string) => Buffer.from(str, 'base64').toString('binary')
-
-const HEADER_LENGTH = 10
-
-const decodeHeader = (bin: string) => ({
+export const decodeHeader = (bin: string) => ({
   id: twoBytesNumber(bin, 0),
   qr: checkBit(bin[2], 7),
   opcode: (charToNumber(bin[2]) << 1) >> 4,
@@ -28,7 +19,7 @@ const decodeHeader = (bin: string) => ({
   arcount: twoBytesNumber(bin, 10),
 })
 
-const binaryToQuestion = (
+export const binaryToQuestion = (
   bin: string,
 ): { question: DNSQuestion; end: number } => {
   let qnameEnd = bin.indexOf(String.fromCharCode(0))
@@ -42,7 +33,7 @@ const binaryToQuestion = (
   }
 }
 
-const binaryToResponseData = (
+export const binaryToResponseData = (
   bin: string,
 ): { responseData: DNSResponse; end: number } => {
   let nameEnd = bin.indexOf(String.fromCharCode(0))
@@ -61,7 +52,7 @@ const binaryToResponseData = (
   }
 }
 
-const wireformatToJSON = (binary: string) => {
+export const wireformatToJSON = (binary: string) => {
   let header = decodeHeader(binary.slice(0, HEADER_LENGTH))
   let body = binary.slice(HEADER_LENGTH)
 

@@ -3,7 +3,7 @@ import { abi as resolverContract } from '@ensdomains/resolver/build/contracts/Re
 import { Interface } from '@ethersproject/abi'
 import contentHash from 'content-hash'
 import namehash from 'eth-ens-namehash'
-import * as DNS from './DNS'
+import * as DNS from './dns'
 import * as IPFS from './IPFS'
 
 const registry = new Interface(registryContract)

@@ -1,5 +1,5 @@
 import { ENS } from './ENS'
-import * as DNS from './DNS'
+import * as DNS from './dns'
 
 addEventListener('fetch', (event: any) => {
   event.respondWith(handleRequest(event.request))
