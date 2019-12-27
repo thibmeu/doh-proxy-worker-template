@@ -33,4 +33,4 @@ jobs:
         yarn deploy
       env:
         CI: true
-        CF_API_KEY: ${{ secrets.CF_API_KEY }}
+        CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
