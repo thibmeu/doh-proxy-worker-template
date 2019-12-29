@@ -1,3 +1,5 @@
+export * from './wireformat'
+
 export const DOHUrl = 'https://cloudflare-dns.com/dns-query'
 
 export const DefaultTtl = 3600

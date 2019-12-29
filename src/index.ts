@@ -1,5 +1,6 @@
 import { ENS } from './ENS'
 import * as DNS from './dns'
+import {btou} from './utils'
 
 addEventListener('fetch', (event: any) => {
   event.respondWith(handleRequest(event.request))
@@ -9,16 +10,23 @@ class DNSQuery {
   public name: string
   public type: string
 
-  constructor(query: string) {
-    let o = Object.fromEntries(
+  constructor(name: string, type: string) {
+    this.name = name
+    this.type = type
+  }
+
+  public static fromSearch = (query: string) => {
+    let o = DNSQuery.paramsToObject(query)
+    return new DNSQuery(o.name, o.type)
+  }
+
+  public static paramsToObject = (query: string): any =>
+    Object.fromEntries(
       query
         .slice(1)
         .split('&')
         .map(c => c.split('=').map(s => decodeURIComponent(s))),
     )
-    this.name = o.name
-    this.type = o.type
-  }
 }
 
 const resolvers: { [key: string]: (request: Request) => Promise<Response> } = {
@@ -33,7 +41,7 @@ const resolvers: { [key: string]: (request: Request) => Promise<Response> } = {
     const ens = ENS(ETH_PROVIDER_URL)
 
     let url = new URL(request.url)
-    let query = new DNSQuery(url.search)
+    let query = DNSQuery.fromSearch(url.search)
     let answer = await ens.getDNS(query.name)[query.type]()
     let res = {
       Status: 0, // TODO: To be implemented properly, failure is -1
@@ -58,11 +66,21 @@ const resolvers: { [key: string]: (request: Request) => Promise<Response> } = {
 }
 const handleRequest = async (request: Request): Promise<Response> => {
   let url = new URL(request.url)
-  let query = new DNSQuery(url.search)
+  let query = DNSQuery.fromSearch(url.search)
 
   // because I cannot decrypt the domain yet, I can't distinguish between .eth and others
   if (request.headers.get('content-type') === 'application/dns-message') {
-    return resolvers.default(request)
+    let bin = ''
+    if (request.method === 'GET') {
+      let dns = DNSQuery.paramsToObject(url.search).dns
+      bin = btou(dns)
+    } else if (request.method === 'POST') {
+      bin = await request.text()
+    }
+    let j = DNS.wireformatToJSON(bin)
+    query = new DNSQuery(j.questions[0].qname, j.questions[0].qtype.toString())
+  } else if (request.headers.get('content-type') === 'application/dns-json') {
+    query = DNSQuery.fromSearch(url.search)
   }
 
   if (!query.name || !query.type) {

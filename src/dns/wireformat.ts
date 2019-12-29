@@ -105,12 +105,18 @@ export const wireformatToJSON = (binary: string): DNSQuery => {
     answers = [...answers, responseData]
     index = end
   }
+  let nameServers: DNSResponse[] = []
+  for (let _ = 0; _ < header.nscount; _++) {
+    let { responseData, end } = binaryToResponseData(body.slice(index))
+    nameServers = [...nameServers, responseData]
+    index = end
+  }
 
   return {
     header,
     questions,
     answers,
-    nameServers: [],
+    nameServers: nameServers,
   }
 }
 
