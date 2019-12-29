@@ -42,7 +42,7 @@ export const binaryToQuestion = (
   let qnameEnd = bin.indexOf(String.fromCharCode(0))
   return {
     question: {
-      qname: bin.slice(0, qnameEnd),
+      qname: bin.slice(0, qnameEnd).slice(0, -1), // remove the last slice
       qtype: twoBytesNumber(bin, qnameEnd + 1),
       qclass: twoBytesNumber(bin, qnameEnd + 3),
     },

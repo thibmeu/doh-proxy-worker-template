@@ -60,7 +60,7 @@ const resolvers: { [key: string]: (request: Request) => Promise<Response> } = {
     }
 
     return new Response(JSON.stringify(res), {
-      headers: { 'Content-Type': 'application/dns-json' },
+      headers: request.headers,
     })
   },
 }
@@ -68,18 +68,18 @@ const handleRequest = async (request: Request): Promise<Response> => {
   let url = new URL(request.url)
   let query = DNSQuery.fromSearch(url.search)
 
-  // because I cannot decrypt the domain yet, I can't distinguish between .eth and others
-  if (request.headers.get('content-type') === 'application/dns-message') {
+  if (request.headers.get('content-type') === 'application/dns-message' || request.headers.get('accept') === 'application/dns-message') {
     let bin = ''
     if (request.method === 'GET') {
       let dns = DNSQuery.paramsToObject(url.search).dns
       bin = btou(dns)
     } else if (request.method === 'POST') {
-      bin = await request.text()
+      let clone = request.clone()
+      bin = await clone.text()
     }
     let j = DNS.wireformatToJSON(bin)
-    query = new DNSQuery(j.questions[0].qname, j.questions[0].qtype.toString())
-  } else if (request.headers.get('content-type') === 'application/dns-json') {
+    query = new DNSQuery(j.questions[0].qname, DNS.opcodeToType(j.questions[0].qtype))
+  } else if (request.headers.get('accept') === 'application/dns-json') {
     query = DNSQuery.fromSearch(url.search)
   }
 
@@ -91,5 +91,14 @@ const handleRequest = async (request: Request): Promise<Response> => {
   if (resolverKey) {
     return resolvers[resolverKey](request)
   }
-  return resolvers.default(request)
+  let result = resolvers.default(request)
+
+  if (request.headers.get('accept') === 'application/dns-json' || resolverKey !== '.eth') {
+    return result
+  } else if (request.headers.get('content-type') === 'application/dns-message' || request.headers.get('accept') === 'application/dns-message') {
+    let resultJ = await result.then(r => r.json())
+    let encoded = DNS.JSONToWireformat(resultJ)
+    return new Response(encoded, {status: 200})
+  }
+  return new Response('Invalid query', {status: 400})
 }
