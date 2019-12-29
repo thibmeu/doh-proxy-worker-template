@@ -1,9 +1,9 @@
-import {checkBit, twoBytesNumber} from '../utils/bytes'
+import {checkBit, twoBytesBinary, twoBytesNumber} from '../utils/bytes'
 import {charToNumber} from '../utils'
 
-const HEADER_LENGTH = 12
+export const HEADER_LENGTH = 12
 
-export const decodeHeader = (bin: string) => ({
+export const decodeHeader = (bin: string): DNSHeader => ({
   id: twoBytesNumber(bin, 0),
   qr: checkBit(bin[2], 7),
   opcode: (charToNumber(bin[2]) << 1) >> 4,
@@ -18,6 +18,18 @@ export const decodeHeader = (bin: string) => ({
   nscount: twoBytesNumber(bin, 8),
   arcount: twoBytesNumber(bin, 10),
 })
+
+export const encodeHeader = (header: DNSHeader) => [
+  twoBytesBinary(header.id),
+  String.fromCharCode(
+    (+header.qr << 7) + (header.opcode << 3) + (+header.aa << 2) + (+header.tc << 1) + (+header.rd),
+    (+header.ra << 7) + (header.z << 4) + (header.rcode),
+  ),
+  twoBytesBinary(header.qdcount),
+  twoBytesBinary(header.ancount),
+  twoBytesBinary(header.nscount),
+  twoBytesBinary(header.arcount),
+].join('')
 
 export const binaryToQuestion = (
   bin: string,
