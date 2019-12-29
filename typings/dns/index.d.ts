@@ -1,3 +1,11 @@
+interface DNSQuery {
+  header: DNSHeader
+  questions: DNSQuestion[]
+  answers: DNSResponse[]
+  nameServers: DNSResponse[]
+  additionals?: DNSResponse[]
+}
+
 interface DNSHeader {
   id: number
   qr: boolean
@@ -17,9 +25,9 @@ interface DNSHeader {
 interface DNSResponse {
   name: string
   type: string
-  class?: number
+  class: number
   ttl: number
-  rdlength?: number
+  rdlength: number
   rdata: string
 }
 

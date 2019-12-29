@@ -1,4 +1,10 @@
-import {HEADER_LENGTH, decodeHeader, encodeHeader, wireformatToJSON} from '../src/dns/wireformat'
+import {
+  HEADER_LENGTH,
+  decodeHeader,
+  encodeHeader,
+  JSONToWireformat,
+  wireformatToJSON,
+} from '../src/dns/wireformat'
 import { btou } from '../src/utils'
 
 describe('WireFormat', () => {
@@ -25,5 +31,11 @@ describe('WireFormat', () => {
     const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
 
     expect(encodeHeader(decodeHeader(bin))).toBe(bin.slice(0, HEADER_LENGTH))
+  })
+
+  it('should return the same query on decode/encode', () => {
+    const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
+
+    expect(JSONToWireformat(wireformatToJSON(bin))).toBe(bin)
   })
 })

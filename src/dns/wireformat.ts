@@ -1,5 +1,5 @@
-import {checkBit, twoBytesBinary, twoBytesNumber} from '../utils/bytes'
-import {charToNumber} from '../utils'
+import { checkBit, twoBytesBinary, twoBytesNumber } from '../utils/bytes'
+import { charToNumber } from '../utils'
 
 export const HEADER_LENGTH = 12
 
@@ -19,17 +19,22 @@ export const decodeHeader = (bin: string): DNSHeader => ({
   arcount: twoBytesNumber(bin, 10),
 })
 
-export const encodeHeader = (header: DNSHeader) => [
-  twoBytesBinary(header.id),
-  String.fromCharCode(
-    (+header.qr << 7) + (header.opcode << 3) + (+header.aa << 2) + (+header.tc << 1) + (+header.rd),
-    (+header.ra << 7) + (header.z << 4) + (header.rcode),
-  ),
-  twoBytesBinary(header.qdcount),
-  twoBytesBinary(header.ancount),
-  twoBytesBinary(header.nscount),
-  twoBytesBinary(header.arcount),
-].join('')
+export const encodeHeader = (header: DNSHeader) =>
+  [
+    twoBytesBinary(header.id),
+    String.fromCharCode(
+      (+header.qr << 7) +
+        (header.opcode << 3) +
+        (+header.aa << 2) +
+        (+header.tc << 1) +
+        +header.rd,
+      (+header.ra << 7) + (header.z << 4) + header.rcode,
+    ),
+    twoBytesBinary(header.qdcount),
+    twoBytesBinary(header.ancount),
+    twoBytesBinary(header.nscount),
+    twoBytesBinary(header.arcount),
+  ].join('')
 
 export const binaryToQuestion = (
   bin: string,
@@ -44,6 +49,14 @@ export const binaryToQuestion = (
     end: qnameEnd + 5,
   }
 }
+
+export const questionToBinary = (question: DNSQuestion) =>
+  [
+    question.qname,
+    '\u0000',
+    twoBytesBinary(question.qtype),
+    twoBytesBinary(question.qclass),
+  ].join('')
 
 export const binaryToResponseData = (
   bin: string,
@@ -64,7 +77,18 @@ export const binaryToResponseData = (
   }
 }
 
-export const wireformatToJSON = (binary: string) => {
+export const responseDataToBinary = (data: DNSResponse) =>
+  [
+    data.name,
+    '\u0000',
+    twoBytesBinary(Number.parseInt(data.type)),
+    twoBytesBinary(data.class),
+    twoBytesBinary(data.ttl),
+    twoBytesBinary(data.rdlength),
+    data.rdata,
+  ].join('')
+
+export const wireformatToJSON = (binary: string): DNSQuery => {
   let header = decodeHeader(binary.slice(0, HEADER_LENGTH))
   let body = binary.slice(HEADER_LENGTH)
 
@@ -86,5 +110,14 @@ export const wireformatToJSON = (binary: string) => {
     header,
     questions,
     answers,
+    nameServers: [],
   }
 }
+
+export const JSONToWireformat = (j: DNSQuery) =>
+  [
+    encodeHeader(j.header),
+    ...j.questions.map(q => questionToBinary(q)),
+    ...j.answers.map(r => responseDataToBinary(r)),
+    ...j.nameServers.map(r => responseDataToBinary(r)),
+  ].join('')
