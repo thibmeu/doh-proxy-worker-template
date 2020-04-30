@@ -1,6 +1,6 @@
 import { ENS } from './ENS'
 import * as DNS from './dns'
-import {btou} from './utils'
+import { btou } from './utils'
 
 addEventListener('fetch', (event: any) => {
   event.respondWith(handleRequest(event.request))
@@ -29,21 +29,21 @@ class DNSQuery {
     )
 }
 
-const resolvers: { [key: string]: (request: Request) => Promise<Response> } = {
-  default: async (request: Request): Promise<Response> => {
+const resolvers: {
+  [key: string]: (request: Request, query: DNSQuery) => Promise<Response>
+} = {
+  default: async (request: Request, query: DNSQuery): Promise<Response> => {
     let url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
 
     const r = new Request(url.href, request)
     return fetch(r)
   },
-  '.eth': async (request: Request): Promise<Response> => {
+  '.eth': async (request: Request, query: DNSQuery): Promise<Response> => {
     const ETH_PROVIDER_URL = 'https://cloudflare-eth.com'
     const ens = ENS(ETH_PROVIDER_URL)
 
-    let url = new URL(request.url)
-    let query = DNSQuery.fromSearch(url.search)
     let answer = await ens.getDNS(query.name)[query.type]()
-    let res = {
+    let res: DNSResponseJSON = {
       Status: 0, // TODO: To be implemented properly, failure is -1
       TC: false, // not truncated
       RD: true,
@@ -64,11 +64,15 @@ const resolvers: { [key: string]: (request: Request) => Promise<Response> } = {
     })
   },
 }
+
 const handleRequest = async (request: Request): Promise<Response> => {
   let url = new URL(request.url)
   let query = DNSQuery.fromSearch(url.search)
 
-  if (request.headers.get('content-type') === 'application/dns-message' || request.headers.get('accept') === 'application/dns-message') {
+  if (
+    request.headers.get('content-type') === 'application/dns-message' ||
+    request.headers.get('accept') === 'application/dns-message'
+  ) {
     let bin = ''
     if (request.method === 'GET') {
       let dns = DNSQuery.paramsToObject(url.search).dns
@@ -78,7 +82,10 @@ const handleRequest = async (request: Request): Promise<Response> => {
       bin = await clone.text()
     }
     let j = DNS.wireformatToJSON(bin)
-    query = new DNSQuery(j.questions[0].qname, DNS.opcodeToType(j.questions[0].qtype))
+    query = new DNSQuery(
+      j.questions[0].qname,
+      DNS.opcodeToType(j.questions[0].qtype),
+    )
   } else if (request.headers.get('accept') === 'application/dns-json') {
     query = DNSQuery.fromSearch(url.search)
   }
@@ -87,18 +94,23 @@ const handleRequest = async (request: Request): Promise<Response> => {
     return new Response('A valid query name must be set.', { status: 400 })
   }
 
-  let resolverKey = Object.keys(resolvers).find(key => query.name.endsWith(key))
-  if (resolverKey) {
-    return resolvers[resolverKey](request)
-  }
-  let result = resolvers.default(request)
+  let resolverKey =
+    Object.keys(resolvers).find(key => query.name.endsWith(key)) || 'default'
 
-  if (request.headers.get('accept') === 'application/dns-json' || resolverKey !== '.eth') {
+  let result = resolvers[resolverKey](request, query)
+
+  if (
+    request.headers.get('accept') === 'application/dns-json' ||
+    resolverKey !== '.eth'
+  ) {
     return result
-  } else if (request.headers.get('content-type') === 'application/dns-message' || request.headers.get('accept') === 'application/dns-message') {
-    let resultJ = await result.then(r => r.json())
+  } else if (
+    request.headers.get('content-type') === 'application/dns-message' ||
+    request.headers.get('accept') === 'application/dns-message'
+  ) {
+    let resultJ: DNSResponseJSON = await result.then(r => r.json())
     let encoded = DNS.JSONToWireformat(resultJ)
-    return new Response(encoded, {status: 200})
+    return new Response(encoded, { status: 200 })
   }
-  return new Response('Invalid query', {status: 400})
+  return new Response('Invalid query', { status: 400 })
 }

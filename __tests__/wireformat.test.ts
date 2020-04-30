@@ -2,10 +2,10 @@ import {
   HEADER_LENGTH,
   decodeHeader,
   encodeHeader,
-  JSONToWireformat,
   wireformatToJSON,
+  JSONToWireformat,
 } from '../src/dns/wireformat'
-import { btou } from '../src/utils'
+import { btou, utob } from '../src/utils'
 
 describe('WireFormat', () => {
   it('should decode header', () => {
@@ -33,9 +33,63 @@ describe('WireFormat', () => {
     expect(encodeHeader(decodeHeader(bin))).toBe(bin.slice(0, HEADER_LENGTH))
   })
 
-  it('should return the same query on decode/encode', () => {
-    const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
-
-    expect(JSONToWireformat(wireformatToJSON(bin))).toBe(bin)
+  it('test', () => {
+    let x = JSONToWireformat({
+      Status: 0,
+      TC: false,
+      RD: true,
+      RA: true,
+      AD: false,
+      CD: false,
+      Question: [
+        {
+          name: 'ipfs.eth',
+          type: '1',
+        },
+      ],
+      Answer: [
+        {
+          name: 'ipfs.eth.',
+          type: '1',
+          ttl: 300,
+          class: 0,
+          rdlength: 14,
+          rdata: '104.18.64.168',
+        },
+        {
+          name: 'ipfs.eth.',
+          type: '1',
+          ttl: 300,
+          class: 0,
+          rdlength: 14,
+          rdata: '104.18.252.167',
+        },
+        {
+          name: 'ipfs.eth.',
+          type: '1',
+          ttl: 300,
+          class: 0,
+          rdlength: 14,
+          rdata: '104.18.253.167',
+        },
+        {
+          name: 'ipfs.eth.',
+          type: '1',
+          ttl: 300,
+          class: 0,
+          rdlength: 14,
+          rdata: '104.18.254.167',
+        },
+        {
+          name: 'ipfs.eth.',
+          type: '1',
+          ttl: 300,
+          class: 0,
+          rdlength: 14,
+          rdata: '104.18.255.167',
+        },
+      ],
+    })
+    console.log(wireformatToJSON(x))
   })
 })

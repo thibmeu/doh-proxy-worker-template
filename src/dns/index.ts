@@ -4,7 +4,8 @@ export const DOHUrl = 'https://cloudflare-dns.com/dns-query'
 
 export const DefaultTtl = 3600
 
-export const opcodeToType = (opcode: string|number) => Object.keys(OpCodes).find(k => OpCodes[k] === ''+opcode) || ''
+export const opcodeToType = (opcode: string | number) =>
+  Object.keys(OpCodes).find(k => OpCodes[k] === '' + opcode) || ''
 
 // from https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4
 export const OpCodes: { [key: string]: string } = {

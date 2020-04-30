@@ -36,13 +36,22 @@ export const encodeHeader = (header: DNSHeader) =>
     twoBytesBinary(header.arcount),
   ].join('')
 
+export const labelsToName = (bin: string): string => {
+  let name = ''
+  for (let i = 0; i < bin.length; i += charToNumber(bin[i]) + 1) {
+    name +=
+      (i !== 0 ? '.' : '') + bin.slice(i + 1, i + 1 + charToNumber(bin[i]))
+  }
+  return name
+}
+
 export const binaryToQuestion = (
   bin: string,
 ): { question: DNSQuestion; end: number } => {
   let qnameEnd = bin.indexOf(String.fromCharCode(0))
   return {
     question: {
-      qname: bin.slice(0, qnameEnd).slice(0, -1), // remove the last slice
+      qname: labelsToName(bin.slice(0, qnameEnd)),
       qtype: twoBytesNumber(bin, qnameEnd + 1),
       qclass: twoBytesNumber(bin, qnameEnd + 3),
     },
@@ -50,9 +59,15 @@ export const binaryToQuestion = (
   }
 }
 
+export const nameToLabels = (name: string): string =>
+  name
+    .split('.')
+    .map(label => `${String.fromCharCode(label.length)}${label}`)
+    .join('')
+
 export const questionToBinary = (question: DNSQuestion) =>
   [
-    question.qname,
+    nameToLabels(question.qname),
     '\u0000',
     twoBytesBinary(question.qtype),
     twoBytesBinary(question.qclass),
@@ -120,10 +135,29 @@ export const wireformatToJSON = (binary: string): DNSQuery => {
   }
 }
 
-export const JSONToWireformat = (j: DNSQuery) =>
+export const JSONToWireformat = (j: DNSResponseJSON): string =>
   [
-    encodeHeader(j.header),
-    ...j.questions.map(q => questionToBinary(q)),
-    ...j.answers.map(r => responseDataToBinary(r)),
-    ...j.nameServers.map(r => responseDataToBinary(r)),
+    encodeHeader({
+      id: 0, // TODO to be replaced
+      qr: true,
+      opcode: Number.parseInt(j.Question[0].type),
+      aa: j.AD,
+      tc: j.TC,
+      rd: j.RD,
+      ra: j.RA,
+      z: 0,
+      rcode: j.Status,
+      qdcount: j.Question.length,
+      ancount: j.Answer.length,
+      nscount: 0,
+      arcount: 0,
+    }),
+    ...j.Question.map(q =>
+      questionToBinary({
+        qname: q.name,
+        qtype: Number.parseInt(q.type),
+        qclass: 0,
+      }),
+    ),
+    ...j.Answer.map(r => responseDataToBinary(r)),
   ].join('')

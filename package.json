@@ -8,13 +8,13 @@
     "build": "wrangler build",
     "deploy": "wrangler publish",
     "format": "prettier --write '**/*.{ts,js,css,json,md}'",
-    "start": "wrangler preview",
+    "start": "wrangler dev",
     "test": "jest"
   },
   "author": "Thibault <contact@thibaultmeunier.com>",
   "license": "MIT",
   "devDependencies": {
-    "@cloudflare/wrangler": "1.6.0",
+    "@cloudflare/wrangler": "beta",
     "@types/jest": "^24.0.25",
     "jest": "^24.9.0",
     "prettier": "^1.19.1",

@@ -1,3 +1,17 @@
+interface DNSResponseJSON {
+  Status: number
+  TC: boolean
+  RD: boolean
+  RA: boolean
+  AD: boolean
+  CD: boolean
+  Question: {
+    name: string
+    type: string
+  }[]
+  Answer: DNSResponse[]
+}
+
 interface DNSQuery {
   header: DNSHeader
   questions: DNSQuestion[]
