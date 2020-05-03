@@ -1,4 +1,4 @@
-import { charToNumber } from '../utils'
+import { charToNumber, uint8ArrayToString } from '../utils'
 
 export const encodeName = (name: string): string =>
   name
@@ -6,14 +6,10 @@ export const encodeName = (name: string): string =>
     .map(label => `${String.fromCharCode(label.length)}${label}`)
     .join('')
 
-export const decodeName = (bin: string): string => {
+export const decodeName = (bin: Uint8Array): string => {
   let name = ''
-  for (
-    let i = 0;
-    ![undefined, String.fromCharCode(0)].includes(bin[i]);
-    i += charToNumber(bin[i]) + 1
-  ) {
-    name += bin.slice(i + 1, i + 1 + charToNumber(bin[i])) + '.'
+  for (let i = 0; ![undefined, 0].includes(bin[i]); i += bin[i] + 1) {
+    name += uint8ArrayToString(bin.slice(i + 1, i + 1 + bin[i])) + '.'
   }
   return name
 }

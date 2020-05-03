@@ -1,4 +1,4 @@
-import { charToNumber, fourBytesNumber } from '../utils'
+import { fourBytesNumber, uint8ArrayToString } from '../utils'
 import { decodeName } from './helpers'
 
 export const opcodeToType = (opcode: string | number) =>
@@ -24,18 +24,15 @@ export const encodeOpcodeData = (data: DNSAnswer): string => {
   }
 }
 
-export const decodeOpcodeData = (type: string, data: string): string => {
+export const decodeOpcodeData = (type: string, data: Uint8Array): string => {
   // TODO: deal with data.type != 0
   switch (opcodeToType(type)) {
     case 'A':
-      return data
-        .split('')
-        .map(c => charToNumber(c))
-        .join('.')
+      return data.join('.')
     case 'TXT':
-      return data
+      return uint8ArrayToString(data)
     case 'CNAME':
-      return data
+      return uint8ArrayToString(data)
     case 'SOA':
       let index = 0
       let mname = decodeName(data)

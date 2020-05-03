@@ -12,18 +12,16 @@ import { encodeName, decodeName } from './helpers'
 
 export const HEADER_LENGTH = 12
 
-export const decodeHeader = (bin: string): DNSHeader => ({
-  id:
-    (console.log(charToNumber(bin[0]), charToNumber(bin[1])),
-    twoBytesNumber(bin, 0)),
+export const decodeHeader = (bin: Uint8Array): DNSHeader => ({
+  id: (console.log(bin[0], bin[1]), twoBytesNumber(bin, 0)),
   qr: checkBit(bin[2], 7),
-  opcode: leftShift(charToNumber(bin[2]), 1) >> 4,
+  opcode: leftShift(bin[2], 1) >> 4,
   aa: checkBit(bin[2], 2),
   tc: checkBit(bin[2], 1),
   rd: checkBit(bin[2], 0),
   ra: checkBit(bin[3], 7),
-  z: leftShift(charToNumber(bin[3]), 1) >> 5,
-  rcode: charToNumber(bin[3]) % (1 << 4),
+  z: leftShift(bin[3], 1) >> 5,
+  rcode: bin[3] % (1 << 4),
   qdcount: twoBytesNumber(bin, 4),
   ancount: twoBytesNumber(bin, 6),
   nscount: twoBytesNumber(bin, 8),
@@ -48,9 +46,9 @@ export const encodeHeader = (header: DNSHeader) =>
   ].join('')
 
 export const decodeQuestion = (
-  bin: string,
+  bin: Uint8Array,
 ): { question: DNSQuestion; end: number } => {
-  let nameEnd = bin.indexOf(String.fromCharCode(0))
+  let nameEnd = bin.indexOf(0)
   return {
     question: {
       name: decodeName(bin.slice(0, nameEnd)),
@@ -69,7 +67,7 @@ export const encodeQuestion = (question: DNSQuestion) =>
   ].join('')
 
 export const decodeResponseData = (
-  bin: string,
+  bin: Uint8Array,
 ): { responseData: DNSAnswer; end: number } => {
   if (bin.length <= 0) {
     throw 'Cannot decode data. Binary is invalid.'
@@ -78,18 +76,18 @@ export const decodeResponseData = (
   let nameEnd = name.length + 1 // there is no dot at the beginning while there is a one byte number
   let rdlength = twoBytesNumber(bin, nameEnd + 8)
   let end = nameEnd + 10 + rdlength
-  let responseData = {
-    name: name,
-    type: twoBytesNumber(bin, nameEnd).toString(),
-    class: twoBytesNumber(bin, nameEnd + 2),
-    ttl: fourBytesNumber(bin, nameEnd + 4),
-    rdlength: rdlength,
-    rdata: bin.slice(nameEnd + 10, end),
-  }
-  responseData.rdata = decodeOpcodeData(responseData.type, responseData.rdata)
-  responseData.rdlength = responseData.rdata.length
+
+  let type = twoBytesNumber(bin, nameEnd).toString()
+  let data = decodeOpcodeData(type, bin.slice(nameEnd + 10, end))
   return {
-    responseData,
+    responseData: {
+      name: name,
+      type,
+      class: twoBytesNumber(bin, nameEnd + 2),
+      ttl: fourBytesNumber(bin, nameEnd + 4),
+      rdlength: data.length,
+      rdata: data,
+    },
     end,
   }
 }
@@ -107,8 +105,9 @@ export const encodeResponseData = (data: DNSAnswer) => {
 }
 
 export const decode = (binary: string): DNSQuery => {
-  let header = decodeHeader(binary.slice(0, HEADER_LENGTH))
-  let body = binary.slice(HEADER_LENGTH)
+  let bin = new Uint8Array(Buffer.from(binary, 'binary'))
+  let header = decodeHeader(bin.slice(0, HEADER_LENGTH))
+  let body = bin.slice(HEADER_LENGTH)
 
   let index = 0
 

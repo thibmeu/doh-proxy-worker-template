@@ -7,17 +7,17 @@ export const utob = (str: string) =>
 
 export const Bytes = new Array(8).fill(1).map((v, i) => v << i)
 
-export const checkBit = (byte: string, index: number) =>
-  (charToNumber(byte) & Bytes[index]) === Bytes[index]
+export const checkBit = (byte: number, index: number) =>
+  (byte & Bytes[index]) === Bytes[index]
 
-export const twoBytesNumber = (bin: string, index: number) =>
-  (charToNumber(bin[index]) << 8) | charToNumber(bin[index + 1])
+export const twoBytesNumber = (bin: Uint8Array, index: number) =>
+  (bin[index] << 8) | bin[index + 1]
 
-export const fourBytesNumber = (bin: string, index: number) =>
-  (charToNumber(bin[index]) << 24) |
-  (charToNumber(bin[index + 1]) << 16) |
-  (charToNumber(bin[index + 2]) << 8) |
-  charToNumber(bin[index + 3])
+export const fourBytesNumber = (bin: Uint8Array, index: number) =>
+  (bin[index] << 24) |
+  (bin[index + 1] << 16) |
+  (bin[index + 2] << 8) |
+  bin[index + 3]
 
 export const twoBytesBinary = (n: number) =>
   String.fromCharCode(n >> 8, n % 256)
@@ -33,3 +33,8 @@ export const fourBytesBinary = (n: number): string => {
 export const BYTE_SIZE = 1 << 8
 
 export const leftShift = (n: number, shift: number) => (n << shift) % BYTE_SIZE
+
+export const uint8ArrayToString = (bin: Uint8Array) =>
+  Array.from(bin)
+    .map(u => String.fromCharCode(u))
+    .join('')

@@ -10,7 +10,8 @@ import { handleRequest } from '../src/handler'
 
 describe('WireFormat', () => {
   it('should decode header', () => {
-    const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
+    const binary = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
+    const bin = new Uint8Array(Buffer.from(binary, 'binary'))
     const header = decodeHeader(bin)
 
     expect(header.id).toBe(43981)
@@ -29,9 +30,10 @@ describe('WireFormat', () => {
   })
 
   it('should return the same header on decode/encode', () => {
-    const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
+    const binary = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
+    const bin = new Uint8Array(Buffer.from(binary, 'binary'))
 
-    expect(encodeHeader(decodeHeader(bin))).toBe(bin.slice(0, HEADER_LENGTH))
+    expect(encodeHeader(decodeHeader(bin))).toBe(binary.slice(0, HEADER_LENGTH))
   })
 
   it('should return the same thing on decode/encode', () => {
