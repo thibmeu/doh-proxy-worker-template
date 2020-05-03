@@ -2,10 +2,11 @@ import {
   HEADER_LENGTH,
   decodeHeader,
   encodeHeader,
-  wireformatToJSON,
-  JSONToWireformat,
+  decode,
+  encode,
 } from '../src/dns/wireformat'
-import { btou, utob } from '../src/utils'
+import { btou } from '../src/utils'
+import { handleRequest } from '../src/handler'
 
 describe('WireFormat', () => {
   it('should decode header', () => {
@@ -33,63 +34,24 @@ describe('WireFormat', () => {
     expect(encodeHeader(decodeHeader(bin))).toBe(bin.slice(0, HEADER_LENGTH))
   })
 
-  it('test', () => {
-    let x = JSONToWireformat({
-      Status: 0,
-      TC: false,
-      RD: true,
-      RA: true,
-      AD: false,
-      CD: false,
-      Question: [
-        {
-          name: 'ipfs.eth',
-          type: '1',
+  it('should return the same thing on decode/encode', () => {
+    const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
+
+    expect(encode(decode(bin))).toBe(bin)
+  })
+
+  it('should return a valid result for ipfs.eth', async () => {
+    // const bin = btou('AAABAAABAAAAAAABBGlwZnMDZXRoAAABAAEAACkQAAAAAAAACAAIAAQAAQAA')
+
+    let request = new Request(
+      '/?dns=AAABAAABAAAAAAABBGlwZnMDZXRoAAABAAEAACkQAAAAAAAACAAIAAQAAQAA',
+      {
+        headers: {
+          'Content-Type': 'application/dns-message',
         },
-      ],
-      Answer: [
-        {
-          name: 'ipfs.eth.',
-          type: '1',
-          ttl: 300,
-          class: 0,
-          rdlength: 14,
-          rdata: '104.18.64.168',
-        },
-        {
-          name: 'ipfs.eth.',
-          type: '1',
-          ttl: 300,
-          class: 0,
-          rdlength: 14,
-          rdata: '104.18.252.167',
-        },
-        {
-          name: 'ipfs.eth.',
-          type: '1',
-          ttl: 300,
-          class: 0,
-          rdlength: 14,
-          rdata: '104.18.253.167',
-        },
-        {
-          name: 'ipfs.eth.',
-          type: '1',
-          ttl: 300,
-          class: 0,
-          rdlength: 14,
-          rdata: '104.18.254.167',
-        },
-        {
-          name: 'ipfs.eth.',
-          type: '1',
-          ttl: 300,
-          class: 0,
-          rdlength: 14,
-          rdata: '104.18.255.167',
-        },
-      ],
-    })
-    console.log(wireformatToJSON(x))
+      },
+    )
+    let response = await handleRequest(request)
+    response
   })
 })

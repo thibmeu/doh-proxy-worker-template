@@ -9,34 +9,37 @@ interface DNSResponseJSON {
     name: string
     type: string
   }[]
-  Answer: DNSResponse[]
+  Answer: DNSAnswer[]
 }
 
 interface DNSQuery {
   header: DNSHeader
   questions: DNSQuestion[]
-  answers: DNSResponse[]
-  nameServers: DNSResponse[]
-  additionals?: DNSResponse[]
+  answers: DNSAnswer[]
+  nameServers: DNSAnswer[]
+  additionals?: DNSAnswer[]
 }
 
+/**
+ * DNSQuery is defined in 4.1.1 of RFC1035
+ */
 interface DNSHeader {
-  id: number
-  qr: boolean
-  opcode: number
-  aa: boolean
-  tc: boolean
-  rd: boolean
-  ra: boolean
-  z: number
-  rcode: number
-  qdcount: number
-  ancount: number
-  nscount: number
-  arcount: number
+  id: number // ID of the query
+  qr: boolean // false if query, true if response
+  opcode: number // 0 for standard QUERY, 1 for inversed IQUERY, 2 for server STATUS
+  aa: boolean // Authoritative Answer
+  tc: boolean // Is the message TruCated
+  rd: boolean // Recursion Desired
+  ra: boolean // Recursion Available
+  z: number // 0
+  rcode: number // Error code. Refer to the RFC for details
+  qdcount: number // Number of Questions
+  ancount: number // Number of Answers
+  nscount: number // Number of Name Servers
+  arcount: number // Number of Additional Records
 }
 
-interface DNSResponse {
+interface DNSAnswer {
   name: string
   type: string
   class: number
@@ -46,9 +49,9 @@ interface DNSResponse {
 }
 
 interface DNSQuestion {
-  qname: string
-  qtype: number
-  qclass: number
+  name: string
+  type: number
+  class: number
 }
 
 declare module 'content-hash' {

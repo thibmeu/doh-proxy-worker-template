@@ -59,16 +59,20 @@ export const SupportedRecord = ['A', 'AAAA', 'CNAME']
 export const getDNS = (
   provider_url: string,
   name: string,
-): { [key: string]: () => Promise<DNSResponse[]> } => ({
+): { [key: string]: () => Promise<DNSAnswer[]> } => ({
   ...Object.fromEntries(
     SupportedRecord.map(record => [
       record,
       () =>
-        DNS.lookup(
-          IPFS.DefaultProvider,
-          record,
-        ).then((r: { Answer: DNSResponse[] }) =>
-          r.Answer.map(a => ({ ...a, name: `${name}.` })),
+        DNS.lookup(IPFS.DefaultProvider, record).then((r: { Answer: any[] }) =>
+          r.Answer.map(a => ({
+            name: `${name}.`,
+            type: a.type.toString(),
+            ttl: a.TTL,
+            class: 1, // IN class
+            rdlength: a.data.length,
+            rdata: a.data,
+          })),
         ),
     ]),
   ),
@@ -77,7 +81,7 @@ export const getDNS = (
     let chBinary = await getContentHash(provider_url, node)
     let chText = contentHash.decode(chBinary)
     return [`dnslink=/ipfs/${chText}`, `contenthash=${chBinary}`].map(
-      (rec): DNSResponse => ({
+      (rec): DNSAnswer => ({
         name: name,
         type: DNS.OpCodes['TXT'],
         class: 0,
