@@ -4,23 +4,24 @@ import { decodeName } from './helpers'
 export const opcodeToType = (opcode: string | number) =>
   Object.keys(OpCodes).find(k => OpCodes[k] === '' + opcode) || ''
 
-export const encodeOpcodeData = (data: DNSAnswer): string => {
+export const encodeOpcodeData = (data: DNSAnswer): Uint8Array => {
   // TODO: deal with data.type != 0
   switch (opcodeToType(data.type)) {
     case 'A':
-      return data.rdata
-        .split('.')
-        .map(s => Number.parseInt(s))
-        .map(n => String.fromCharCode(n))
-        .join('')
+      return Uint8Array.from(
+          data.rdata
+          .split('.')
+          .map(s => Number.parseInt(s))
+        )
     case 'TXT':
-      return data.rdata
+      return new Uint8Array(Buffer.from(data.rdata))
     case 'CNAME':
-      return data.rdata
+      return new Uint8Array(Buffer.from(data.rdata))
     case 'OPT':
-      return ''
+      return new Uint8Array()
     default:
-      return '------ Method not implemented ------'
+      console.log('------ Method not implemented ------')
+      return new Uint8Array()
   }
 }
 

@@ -5,7 +5,7 @@ import {
   decode,
   encode,
 } from '../src/dns/wireformat'
-import { btou } from '../src/utils'
+import { btou, uint8ArrayToString } from '../src/utils'
 import { handleRequest } from '../src/handler'
 
 describe('WireFormat', () => {
@@ -33,13 +33,13 @@ describe('WireFormat', () => {
     const binary = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
     const bin = new Uint8Array(Buffer.from(binary, 'binary'))
 
-    expect(encodeHeader(decodeHeader(bin))).toBe(binary.slice(0, HEADER_LENGTH))
+    expect(uint8ArrayToString(encodeHeader(decodeHeader(bin)))).toBe(binary.slice(0, HEADER_LENGTH))
   })
 
   it('should return the same thing on decode/encode', () => {
     const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
 
-    expect(encode(decode(bin))).toBe(bin)
+    expect(uint8ArrayToString(encode(decode(bin)))).toBe(bin)
   })
 
   it('should return a valid result for ipfs.eth', async () => {
@@ -53,7 +53,6 @@ describe('WireFormat', () => {
         },
       },
     )
-    let response = await handleRequest(request)
-    response
+    // let response = await handleRequest(request)
   })
 })

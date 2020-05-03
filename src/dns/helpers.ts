@@ -1,10 +1,13 @@
 import { charToNumber, uint8ArrayToString } from '../utils'
 
-export const encodeName = (name: string): string =>
-  name
-    .split('.')
-    .map(label => `${String.fromCharCode(label.length)}${label}`)
-    .join('')
+export const encodeName = (name: string): Uint8Array =>
+  Uint8Array.from(
+    name
+      .split('.')
+      .map(label => new Uint8Array(Buffer.from(label)))
+      .map(u8 => [u8.length, ...Array.from(u8)])
+      .flat()
+  )
 
 export const decodeName = (bin: Uint8Array): string => {
   let name = ''

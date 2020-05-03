@@ -19,15 +19,15 @@ export const fourBytesNumber = (bin: Uint8Array, index: number) =>
   (bin[index + 2] << 8) |
   bin[index + 3]
 
-export const twoBytesBinary = (n: number) =>
-  String.fromCharCode(n >> 8, n % 256)
+export const twoBytesBinary = (n: number): Uint8Array =>
+  Uint8Array.from([n >> 8, n % 256])
 
-export const fourBytesBinary = (n: number): string => {
-  let bin = ''
+export const fourBytesBinary = (n: number): Uint8Array => {
+  let bin = new Uint8Array(4)
   for (let i = 3; i >= 0; i--) {
-    bin += String.fromCharCode((n >> (8 * i)) % 256)
+    bin[i] = (n >> (8 * i)) % 256
   }
-  return bin
+  return bin.reverse()
 }
 
 export const BYTE_SIZE = 1 << 8

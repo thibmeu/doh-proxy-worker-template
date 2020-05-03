@@ -55,11 +55,11 @@ const resolvers: {
         qr: true,
         aa: true,
         ra: true,
-        ancount: 1, // TODO: answers.length,
+        ancount: answers.length,
         arcount: 0,
         rcode: 0, // No Error
       },
-      answers: answers.slice(0, 1),
+      answers: answers,
     }
 
     return new Response(JSON.stringify(res), {
@@ -98,19 +98,12 @@ export const handleRequest = async (request: Request): Promise<Response> => {
     request.headers.get('accept') === 'application/dns-json' ||
     resolverKey !== '.eth'
   ) {
-    try {
-      let x = await (await result).clone().text()
-      console.log(DNS.decode(x))
-    } catch (err) {
-      console.log(err)
-    }
     return result
   } else if (
     request.headers.get('content-type') === 'application/dns-message' ||
     request.headers.get('accept') === 'application/dns-message'
   ) {
     let resultJ: DNSQuery = await result.then(r => r.json())
-    console.log(resultJ)
     let encoded = DNS.encode(resultJ)
     return new Response(encoded, {
       status: 200,

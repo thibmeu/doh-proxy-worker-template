@@ -13,7 +13,7 @@ import { encodeName, decodeName } from './helpers'
 export const HEADER_LENGTH = 12
 
 export const decodeHeader = (bin: Uint8Array): DNSHeader => ({
-  id: (console.log(bin[0], bin[1]), twoBytesNumber(bin, 0)),
+  id: twoBytesNumber(bin, 0),
   qr: checkBit(bin[2], 7),
   opcode: leftShift(bin[2], 1) >> 4,
   aa: checkBit(bin[2], 2),
@@ -28,22 +28,24 @@ export const decodeHeader = (bin: Uint8Array): DNSHeader => ({
   arcount: twoBytesNumber(bin, 10),
 })
 
-export const encodeHeader = (header: DNSHeader) =>
-  [
-    twoBytesBinary(header.id),
-    String.fromCharCode(
-      leftShift(+header.qr, 7) +
-        leftShift(header.opcode, 3) +
-        leftShift(+header.aa, 2) +
-        leftShift(+header.tc, 1) +
-        +header.rd,
-      leftShift(+header.ra, 7) + leftShift(header.z, 4) + header.rcode,
-    ),
-    twoBytesBinary(header.qdcount),
-    twoBytesBinary(header.ancount),
-    twoBytesBinary(header.nscount),
-    twoBytesBinary(header.arcount),
-  ].join('')
+export const encodeHeader = (header: DNSHeader): Uint8Array =>
+  Uint8Array.from([
+      twoBytesBinary(header.id),
+      Uint8Array.from([
+        leftShift(+header.qr, 7) +
+          leftShift(header.opcode, 3) +
+          leftShift(+header.aa, 2) +
+          leftShift(+header.tc, 1) +
+          +header.rd,
+        leftShift(+header.ra, 7) + leftShift(header.z, 4) + header.rcode,
+      ]),
+      twoBytesBinary(header.qdcount),
+      twoBytesBinary(header.ancount),
+      twoBytesBinary(header.nscount),
+      twoBytesBinary(header.arcount),
+    ].map(u8 => Array.from(u8))
+    .flat()
+  )
 
 export const decodeQuestion = (
   bin: Uint8Array,
@@ -59,12 +61,14 @@ export const decodeQuestion = (
   }
 }
 
-export const encodeQuestion = (question: DNSQuestion) =>
-  [
-    encodeName(question.name),
-    twoBytesBinary(question.type),
-    twoBytesBinary(question.class),
-  ].join('')
+export const encodeQuestion = (question: DNSQuestion): Uint8Array =>
+  Uint8Array.from([
+      encodeName(question.name),
+      twoBytesBinary(question.type),
+      twoBytesBinary(question.class),
+    ].map(u8 => Array.from(u8))
+    .flat()
+  )
 
 export const decodeResponseData = (
   bin: Uint8Array,
@@ -94,14 +98,16 @@ export const decodeResponseData = (
 
 export const encodeResponseData = (data: DNSAnswer) => {
   const encodedData = encodeOpcodeData(data)
-  return [
-    encodeName(data.name),
-    twoBytesBinary(Number.parseInt(data.type)),
-    twoBytesBinary(data.class),
-    fourBytesBinary(data.ttl),
-    twoBytesBinary(encodedData.length),
-    encodedData,
-  ].join('')
+  return Uint8Array.from([
+      encodeName(data.name),
+      twoBytesBinary(Number.parseInt(data.type)),
+      twoBytesBinary(data.class),
+      fourBytesBinary(data.ttl),
+      twoBytesBinary(encodedData.length),
+      encodedData,
+    ].map(u8 => Array.from(u8))
+    .flat()
+  )
 }
 
 export const decode = (binary: string): DNSQuery => {
@@ -146,14 +152,17 @@ export const decode = (binary: string): DNSQuery => {
   }
 }
 
-export const encode = (query: DNSQuery): string =>
-  [
-    encodeHeader(query.header),
-    ...query.questions.map(encodeQuestion),
-    ...query.answers.map(encodeResponseData),
-    ...query.nameServers.map(encodeResponseData),
-    // ...(query.additionals !== undefined ? query.additionals.map(encodeResponseData) : []), // TODO: enable proper additionals
-  ].join('')
+export const encode = (query: DNSQuery): Uint8Array =>
+  Uint8Array.from(
+    [
+      encodeHeader(query.header),
+      ...query.questions.map(encodeQuestion),
+      ...query.answers.map(encodeResponseData),
+      ...query.nameServers.map(encodeResponseData),
+      // ...(query.additionals !== undefined ? query.additionals.map(encodeResponseData) : []), // TODO: enable proper additionals
+    ].map(u8 => Array.from(u8))
+    .flat()
+  )
 
 export const JSONToWireformat = (j: DNSResponseJSON): string =>
   [
