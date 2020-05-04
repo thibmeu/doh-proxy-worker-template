@@ -1,7 +1,7 @@
 module.exports = {
   target: 'webworker',
   entry: './src/index.ts',
-  devtool: 'source-map',
+  // devtool: 'source-map',
   mode: 'production',
   optimization: {
     minimize: true,

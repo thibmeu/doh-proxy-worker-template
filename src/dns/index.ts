@@ -2,9 +2,12 @@ import { decode } from './wireformat'
 export * from './wireformat'
 import { OpCodes } from './opcodes'
 export * from './opcodes'
+export * from './classes'
+export * from './types'
 
 import { btou } from '../utils'
 import { paramsToObject } from '../url'
+import { Query } from './types'
 
 export const DOHUrl = 'https://cloudflare-dns.com/dns-query'
 
@@ -39,7 +42,7 @@ export const lookup = async (
     .then((r: string) => JSON.parse(r))
 }
 
-export const dnsMessageToJSON = async (request: Request): Promise<DNSQuery> => {
+export const dnsMessageToJSON = async (request: Request): Promise<Query> => {
   let url = new URL(request.url)
   let bin = ''
   if (request.method === 'GET') {

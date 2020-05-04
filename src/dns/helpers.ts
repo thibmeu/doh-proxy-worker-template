@@ -1,4 +1,4 @@
-import { charToNumber, uint8ArrayToString } from '../utils'
+import { uint8ArrayToString } from '../utils'
 
 export const encodeName = (name: string): Uint8Array =>
   Uint8Array.from(
@@ -6,7 +6,7 @@ export const encodeName = (name: string): Uint8Array =>
       .split('.')
       .map(label => new Uint8Array(Buffer.from(label)))
       .map(u8 => [u8.length, ...Array.from(u8)])
-      .flat()
+      .flat(),
   )
 
 export const decodeName = (bin: Uint8Array): string => {

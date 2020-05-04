@@ -59,20 +59,20 @@ export const SupportedRecord = ['A', 'AAAA', 'CNAME']
 export const getDNS = (
   provider_url: string,
   name: string,
-): { [key: string]: () => Promise<DNSAnswer[]> } => ({
+): { [key: string]: () => Promise<DNS.Answer[]> } => ({
   ...Object.fromEntries(
     SupportedRecord.map(record => [
       record,
       () =>
-        DNS.lookup(IPFS.DefaultProvider, record).then((r: { Answer: any[] }) =>
-          r.Answer.map(a => ({
-            name: `${name}.`,
-            type: a.type.toString(),
-            ttl: a.TTL,
-            class: 1, // IN class
-            rdlength: a.data.length,
-            rdata: a.data,
-          })),
+        DNS.lookup(IPFS.DefaultProvider, record).then(
+          (r: { Answer: DNS.AnswerJSON[] }) =>
+            r.Answer.map(a => ({
+              name: `${name}.`,
+              type: a.type,
+              ttl: a.TTL,
+              class: DNS.Classes.IN,
+              rdata: a.data,
+            })),
         ),
     ]),
   ),
@@ -81,12 +81,11 @@ export const getDNS = (
     let chBinary = await getContentHash(provider_url, node)
     let chText = contentHash.decode(chBinary)
     return [`dnslink=/ipfs/${chText}`, `contenthash=${chBinary}`].map(
-      (rec): DNSAnswer => ({
+      (rec): DNS.Answer => ({
         name: name,
-        type: DNS.OpCodes['TXT'],
-        class: 0,
+        type: DNS.OpCodes.TXT,
+        class: DNS.Classes.IN,
         ttl: DNS.DefaultTtl,
-        rdlength: rec.length,
         rdata: rec,
       }),
     )

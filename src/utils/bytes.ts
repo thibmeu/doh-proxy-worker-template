@@ -1,9 +1,10 @@
-import { charToNumber } from './char'
-
 export const btou = (str: string) =>
   Buffer.from(str, 'base64').toString('binary')
 export const utob = (str: string) =>
   Buffer.from(str, 'binary').toString('base64')
+
+export const flattenUint8Array = (u8s: Uint8Array[]): Uint8Array =>
+  Uint8Array.from(u8s.map(u8 => Array.from(u8)).flat())
 
 export const Bytes = new Array(8).fill(1).map((v, i) => v << i)
 

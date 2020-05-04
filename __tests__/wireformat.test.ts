@@ -33,7 +33,9 @@ describe('WireFormat', () => {
     const binary = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
     const bin = new Uint8Array(Buffer.from(binary, 'binary'))
 
-    expect(uint8ArrayToString(encodeHeader(decodeHeader(bin)))).toBe(binary.slice(0, HEADER_LENGTH))
+    expect(uint8ArrayToString(encodeHeader(decodeHeader(bin)))).toBe(
+      binary.slice(0, HEADER_LENGTH),
+    )
   })
 
   it('should return the same thing on decode/encode', () => {
