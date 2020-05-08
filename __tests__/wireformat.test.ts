@@ -5,13 +5,13 @@ import {
   decode,
   encode,
 } from '../src/dns/wireformat'
-import { btou, uint8ArrayToString } from '../src/utils'
-import { handleRequest } from '../src/handler'
+import { decodeName, encodeName } from '../src/dns/helpers'
+import { Base64Binary } from '../src/utils'
 
 describe('WireFormat', () => {
   it('should decode header', () => {
-    const binary = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
-    const bin = new Uint8Array(Buffer.from(binary, 'binary'))
+    const binary = 'q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB'
+    const bin = new DataView(Base64Binary.decodeArrayBuffer(binary))
     const header = decodeHeader(bin)
 
     expect(header.id).toBe(43981)
@@ -30,31 +30,50 @@ describe('WireFormat', () => {
   })
 
   it('should return the same header on decode/encode', () => {
-    const binary = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
-    const bin = new Uint8Array(Buffer.from(binary, 'binary'))
+    const binary = 'q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB'
+    const bin = new DataView(Base64Binary.decodeArrayBuffer(binary))
 
-    expect(uint8ArrayToString(encodeHeader(decodeHeader(bin)))).toBe(
-      binary.slice(0, HEADER_LENGTH),
+    expect(encodeHeader(decodeHeader(bin))).toStrictEqual(
+      new Uint8Array(bin.buffer.slice(0, HEADER_LENGTH)),
+    )
+  })
+
+  it('should return the proper name on decoding', () => {
+    let name = '\u0007example\u0003com\0'
+    const encoder = new TextEncoder()
+    let dv = new DataView(encoder.encode(name).buffer)
+
+    expect(decodeName(dv)).toBe('example.com.')
+  })
+
+  it('should return the proper name on encoding', () => {
+    let name = 'example.com.'
+    const encoder = new TextEncoder()
+
+    expect(encodeName(name)).toStrictEqual(
+      encoder.encode('\u0007example\u0003com\0'),
     )
   })
 
   it('should return the same thing on decode/encode', () => {
-    const bin = btou('q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB')
+    const binary = 'q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB'
+    const bin = Base64Binary.decodeArrayBuffer(binary)
 
-    expect(uint8ArrayToString(encode(decode(bin)))).toBe(bin)
-  })
-
-  it('should return a valid result for ipfs.eth', async () => {
-    // const bin = btou('AAABAAABAAAAAAABBGlwZnMDZXRoAAABAAEAACkQAAAAAAAACAAIAAQAAQAA')
-
-    let request = new Request(
-      '/?dns=AAABAAABAAAAAAABBGlwZnMDZXRoAAABAAEAACkQAAAAAAAACAAIAAQAAQAA',
-      {
-        headers: {
-          'Content-Type': 'application/dns-message',
-        },
-      },
+    expect(encode(decode(bin))).toStrictEqual(
+      Uint8Array.from(new Uint8Array(bin)),
     )
-    // let response = await handleRequest(request)
   })
+
+  // it('should return a valid result for ipfs.eth', async () => {
+  //   let request = new Request(
+  //     '/?dns=AAABAAABAAAAAAABBGlwZnMDZXRoAAABAAEAACkQAAAAAAAACAAIAAQAAQAA',
+  //     {
+  //       headers: {
+  //         'Content-Type': 'application/dns-message',
+  //       },
+  //     },
+  //   )
+  //   // need to fake calls to ethereum and cloudflare-dns
+  //   let response = await handleRequest(request)
+  // })
 })

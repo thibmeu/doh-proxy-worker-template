@@ -2,31 +2,29 @@ import {
   checkBit,
   twoBytesBinary,
   fourBytesBinary,
-  twoBytesNumber,
-  fourBytesNumber,
   leftShift,
   flattenUint8Array,
 } from '../utils/bytes'
-import { encodeOpcodeData, decodeOpcodeData, OpCodes } from './opcodes'
+import { encodeOpcodeData, decodeOpcodeData } from './opcodes'
 import { encodeName, decodeName } from './helpers'
 import { Header, Question, Answer, Query } from './types'
 
 export const HEADER_LENGTH = 12
 
-export const decodeHeader = (bin: Uint8Array): Header => ({
-  id: twoBytesNumber(bin, 0),
-  qr: checkBit(bin[2], 7),
-  opcode: leftShift(bin[2], 1) >> 4,
-  aa: checkBit(bin[2], 2),
-  tc: checkBit(bin[2], 1),
-  rd: checkBit(bin[2], 0),
-  ra: checkBit(bin[3], 7),
-  z: leftShift(bin[3], 1) >> 5,
-  rcode: bin[3] % (1 << 4),
-  qdcount: twoBytesNumber(bin, 4),
-  ancount: twoBytesNumber(bin, 6),
-  nscount: twoBytesNumber(bin, 8),
-  arcount: twoBytesNumber(bin, 10),
+export const decodeHeader = (bin: DataView): Header => ({
+  id: bin.getUint16(0),
+  qr: checkBit(bin.getUint8(2), 7),
+  opcode: leftShift(bin.getUint8(2), 1) >> 4,
+  aa: checkBit(bin.getUint8(2), 2),
+  tc: checkBit(bin.getUint8(2), 1),
+  rd: checkBit(bin.getUint8(2), 0),
+  ra: checkBit(bin.getUint8(3), 7),
+  z: leftShift(bin.getUint8(3), 1) >> 5,
+  rcode: bin.getUint8(3) % (1 << 4),
+  qdcount: bin.getUint16(4),
+  ancount: bin.getUint16(6),
+  nscount: bin.getUint16(8),
+  arcount: bin.getUint16(10),
 })
 
 export const encodeHeader = (header: Header): Uint8Array =>
@@ -47,16 +45,17 @@ export const encodeHeader = (header: Header): Uint8Array =>
   ])
 
 export const decodeQuestion = (
-  bin: Uint8Array,
+  bin: DataView,
 ): { question: Question; end: number } => {
-  let nameEnd = bin.indexOf(0)
+  let name = decodeName(bin)
+
   return {
     question: {
-      name: decodeName(bin.slice(0, nameEnd)),
-      type: twoBytesNumber(bin, nameEnd + 1),
-      class: twoBytesNumber(bin, nameEnd + 3),
+      name,
+      type: bin.getUint16(name.length + 1),
+      class: bin.getUint16(name.length + 3),
     },
-    end: nameEnd + 5,
+    end: name.length + 5,
   }
 }
 
@@ -68,24 +67,27 @@ export const encodeQuestion = (question: Question): Uint8Array =>
   ])
 
 export const decodeResponseData = (
-  bin: Uint8Array,
+  bin: DataView,
 ): { responseData: Answer; end: number } => {
-  if (bin.length <= 0) {
+  if (bin.byteLength <= 0) {
     throw 'Cannot decode data. Binary is invalid.'
   }
   let name = decodeName(bin)
   let nameEnd = name.length + 1 // there is no dot at the beginning while there is a one byte number
-  let rdlength = twoBytesNumber(bin, nameEnd + 8)
+  let rdlength = bin.getUint16(nameEnd + 8)
   let end = nameEnd + 10 + rdlength
 
-  let type = twoBytesNumber(bin, nameEnd)
-  let data = decodeOpcodeData(type, bin.slice(nameEnd + 10, end))
+  let type = bin.getUint16(nameEnd)
+  let data = decodeOpcodeData(
+    type,
+    new DataView(bin.buffer.slice(bin.byteOffset + nameEnd + 10, end)),
+  )
   return {
     responseData: {
       name: name,
       type,
-      class: twoBytesNumber(bin, nameEnd + 2),
-      ttl: fourBytesNumber(bin, nameEnd + 4),
+      class: bin.getUint16(nameEnd + 2),
+      ttl: bin.getUint32(nameEnd + 4),
       rdata: data,
     },
     end,
@@ -104,35 +106,33 @@ export const encodeResponseData = (data: Answer) => {
   ])
 }
 
-export const decode = (binary: string): Query => {
-  let bin = new Uint8Array(Buffer.from(binary, 'binary'))
-  let header = decodeHeader(bin.slice(0, HEADER_LENGTH))
-  let body = bin.slice(HEADER_LENGTH)
+export const decode = (binary: ArrayBuffer): Query => {
+  let header = decodeHeader(new DataView(binary, 0, HEADER_LENGTH))
 
-  let index = 0
+  let index = HEADER_LENGTH
 
   let questions: Question[] = []
   for (let _ = 0; _ < header.qdcount; _++) {
-    let { question, end } = decodeQuestion(body.slice(index))
+    let { question, end } = decodeQuestion(new DataView(binary, index))
     questions = [...questions, question]
     index += end
   }
 
   let answers: Answer[] = []
   for (let _ = 0; _ < header.ancount; _++) {
-    let { responseData, end } = decodeResponseData(body.slice(index))
+    let { responseData, end } = decodeResponseData(new DataView(binary, index))
     answers = [...answers, responseData]
     index += end
   }
   let nameServers: Answer[] = []
   for (let _ = 0; _ < header.nscount; _++) {
-    let { responseData, end } = decodeResponseData(body.slice(index))
+    let { responseData, end } = decodeResponseData(new DataView(binary, index))
     nameServers = [...nameServers, responseData]
     index += end
   }
   let additionals: Answer[] = []
   for (let _ = 0; _ < header.arcount; _++) {
-    let { responseData, end } = decodeResponseData(body.slice(index))
+    let { responseData, end } = decodeResponseData(new DataView(binary, index))
     additionals = [...additionals, responseData]
     index += end
   }

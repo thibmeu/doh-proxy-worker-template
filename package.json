@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "doh-ethereum",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A template for kick starting a Cloudflare Workers project",
   "main": "src/index.js",
   "scripts": {
@@ -15,25 +15,25 @@
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/wrangler": "beta",
-    "@types/jest": "^24.0.25",
+    "@types/jest": "^25.2.1",
     "@types/service-worker-mock": "^2.0.1",
     "isomorphic-fetch": "^2.2.1",
-    "jest": "^24.9.0",
+    "jest": "^26.0.1",
     "jest-fetch-mock": "^3.0.3",
-    "prettier": "^1.19.1",
+    "prettier": "^2.0.5",
     "service-worker-mock": "^2.0.5",
-    "ts-jest": "^24.2.0"
+    "ts-jest": "^25.5.0"
   },
   "dependencies": {
-    "@cloudflare/workers-types": "^1.0.6",
-    "@ensdomains/resolver": "^0.1.13",
-    "@ethersproject/abi": "^5.0.0-beta.142",
-    "@types/node": "^13.1.1",
+    "@cloudflare/workers-types": "^1.0.9",
+    "@ensdomains/resolver": "^0.2.4",
+    "@ethersproject/abi": "^5.0.0-beta.153",
+    "@types/node": "^13.13.5",
     "content-hash": "^2.5.2",
     "eth-ens-namehash": "^2.0.8",
     "source-map-loader": "^0.2.4",
-    "source-map-support": "^0.5.16",
-    "ts-loader": "^6.2.1",
-    "typescript": "^3.7.4"
+    "source-map-support": "^0.5.19",
+    "ts-loader": "^7.0.3",
+    "typescript": "^3.8.3"
   }
 }

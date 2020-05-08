@@ -1,12 +1,28 @@
-import { fourBytesNumber, uint8ArrayToString } from '../utils'
 import { decodeName } from './helpers'
 import { Answer } from './types'
+import { flattenUint8Array, twoBytesBinary } from '../utils'
 
 export const encodeOpcodeData = (data: Answer): Uint8Array => {
   // TODO: deal with data.type != 0
   switch (data.type) {
     case OpCodes.A:
-      return Uint8Array.from(data.rdata.split('.').map(s => Number.parseInt(s)))
+      return Uint8Array.from(
+        data.rdata.split('.').map((s) => Number.parseInt(s)),
+      )
+    case OpCodes.AAAA:
+      let bytes = data.rdata.split('::').map((s) =>
+        flattenUint8Array(
+          s
+            .split(':')
+            .map((n) => Number.parseInt(n, 16))
+            .map((n) => twoBytesBinary(n)),
+        ),
+      )
+      // there should be 8 uint16. Add 0s between two groups to fill the gap rfc5156
+      let filler = Uint8Array.from(
+        new Array(8 - (bytes[0].length + bytes[1].length)).fill(0),
+      )
+      return flattenUint8Array([bytes[0], filler, bytes[1]])
     case OpCodes.TXT:
       return new Uint8Array(Buffer.from(data.rdata))
     case OpCodes.CNAME:
@@ -19,29 +35,46 @@ export const encodeOpcodeData = (data: Answer): Uint8Array => {
   }
 }
 
-export const decodeOpcodeData = (type: OpCodes, data: Uint8Array): string => {
+export const decodeOpcodeData = (type: OpCodes, data: DataView): string => {
+  let decoder = new TextDecoder()
   // TODO: deal with data.type != 0
   switch (type) {
     case OpCodes.A:
-      return data.join('.')
+      return [
+        data.getUint8(0),
+        data.getUint8(1),
+        data.getUint8(2),
+        data.getUint8(3),
+      ].join('.')
+    case OpCodes.AAAA:
+      return new Array(8)
+        .fill(0)
+        .map((_, i) => i)
+        .map((i) => data.getUint16(i))
+        .map((n) => n.toString(16))
+        .map((n) => (n !== '0' ? n : undefined))
+        .join(':')
+        .replace(/::+/g, '::')
     case OpCodes.TXT:
-      return uint8ArrayToString(data)
+      return decoder.decode(data)
     case OpCodes.CNAME:
-      return uint8ArrayToString(data)
+      return decoder.decode(data)
     case OpCodes.SOA:
       let index = 0
       let mname = decodeName(data)
       index += mname.length + 1
-      let rname = decodeName(data.slice(index))
+      let rname = decodeName(
+        new DataView(data.buffer.slice(data.byteOffset + index)),
+      )
       index += rname.length + 1
       return JSON.stringify({
         mname,
         rname,
-        serial: fourBytesNumber(data, index),
-        refresh: fourBytesNumber(data, index + 4),
-        retry: fourBytesNumber(data, index + 8),
-        expire: fourBytesNumber(data, index + 12),
-        minimum: fourBytesNumber(data, index + 16),
+        serial: data.getUint32(index),
+        refresh: data.getUint32(index + 4),
+        retry: data.getUint32(index + 8),
+        expire: data.getUint32(index + 12),
+        minimum: data.getUint32(index + 16),
       })
     case OpCodes.OPT:
       return ''

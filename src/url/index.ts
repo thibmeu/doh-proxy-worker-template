@@ -3,5 +3,5 @@ export const paramsToObject = (query: string): any =>
     query
       .slice(1)
       .split('&')
-      .map(c => c.split('=').map(s => decodeURIComponent(s))),
+      .map((c) => c.split('=').map((s) => decodeURIComponent(s))),
   )

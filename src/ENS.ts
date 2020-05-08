@@ -5,6 +5,7 @@ import contentHash from 'content-hash'
 import namehash from 'eth-ens-namehash'
 import * as DNS from './dns'
 import * as IPFS from './IPFS'
+import { OpCodes } from './dns'
 
 const registry = new Interface(registryContract)
 const resolver = new Interface(resolverContract)
@@ -32,9 +33,9 @@ const methodToFunction = (
       id: 1,
     }),
   })
-    .then(r => r.json())
-    .then(r => r.result)
-    .then(r => options.contract.decodeFunctionResult(options.method, r)[0])
+    .then((r) => r.json())
+    .then((r) => r.result)
+    .then((r) => options.contract.decodeFunctionResult(options.method, r)[0])
 
 export const ENS_REGISTRY = '0x314159265dd8dbb310642f98f50c066173c1259b'
 
@@ -54,19 +55,19 @@ export const getResolver = (provider_url: string) =>
     to: ENS_REGISTRY,
   })
 
-export const SupportedRecord = ['A', 'AAAA', 'CNAME']
+export const SupportedRecord = [OpCodes.A, OpCodes.AAAA, OpCodes.CNAME]
 
 export const getDNS = (
   provider_url: string,
   name: string,
 ): { [key: string]: () => Promise<DNS.Answer[]> } => ({
   ...Object.fromEntries(
-    SupportedRecord.map(record => [
+    SupportedRecord.map((record) => [
       record,
       () =>
         DNS.lookup(IPFS.DefaultProvider, record).then(
           (r: { Answer: DNS.AnswerJSON[] }) =>
-            r.Answer.map(a => ({
+            r.Answer.map((a) => ({
               name: `${name}.`,
               type: a.type,
               ttl: a.TTL,
@@ -76,7 +77,7 @@ export const getDNS = (
         ),
     ]),
   ),
-  TXT: async () => {
+  16: async () => {
     let node = hash(name)
     let chBinary = await getContentHash(provider_url, node)
     let chText = contentHash.decode(chBinary)
