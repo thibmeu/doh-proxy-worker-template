@@ -220,7 +220,5 @@ export const encode = (query: Query): Uint8Array =>
     ...query.questions.map(encodeQuestion),
     ...query.answers.map(encodeResponseData),
     ...query.nameServers.map(encodeResponseData),
-    ...(query.additionals !== undefined
-      ? query.additionals.map(encodeResponseData)
-      : []),
+    ...(query.additionals?.map(encodeResponseData) ?? []),
   ])

@@ -33,7 +33,7 @@ export const EthResolver = async (
         aa: true,
         ra: true,
         ancount: answers.length,
-        arcount: 0,
+        arcount: j.additionals?.length ?? 0,
         rcode: DNS.Errors.NoError,
       },
       answers,
