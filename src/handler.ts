@@ -20,9 +20,9 @@ const resolvers: {
     query: DNS.QuestionJSON,
   ): Promise<Response> => {
     const ETH_PROVIDER_URL = 'https://cloudflare-eth.com'
-    const ens = ENS(ETH_PROVIDER_URL)
+    const ens = new ENS(ETH_PROVIDER_URL)
 
-    let answers = await ens.getDNS(query.name)[query.type]()
+    let answers = await ens.getDNS(query)
 
     if (DNS.isWireQuery(request)) {
       let j: DNS.Query = await DNS.dnsMessageToJSON(request)

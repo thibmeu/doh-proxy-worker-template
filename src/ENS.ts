@@ -37,65 +37,66 @@ const methodToFunction = (
     .then((r) => r.result)
     .then((r) => options.contract.decodeFunctionResult(options.method, r)[0])
 
-export const ENS_REGISTRY = '0x314159265dd8dbb310642f98f50c066173c1259b'
-
-export const hash = (name: string) => namehash.normalize(namehash.hash(name))
-
-export const getContentHash = async (provider_url: string, node: string) =>
-  methodToFunction(provider_url, {
-    contract: resolver,
-    method: 'contenthash',
-    to: await getResolver(provider_url)(node),
-  })(node)
-
-export const getResolver = (provider_url: string) =>
-  methodToFunction(provider_url, {
-    contract: registry,
-    method: 'resolver',
-    to: ENS_REGISTRY,
-  })
-
-export const SupportedRecord = [OpCodes.A, OpCodes.AAAA, OpCodes.CNAME]
-
-export const getDNS = (
-  provider_url: string,
-  name: string,
-): { [key: number]: () => Promise<DNS.Answer[]> } => ({
-  ...Object.fromEntries(
-    SupportedRecord.map((record) => [
-      record,
-      () =>
-        DNS.lookup(IPFS.DefaultProvider, record).then(
-          (r: { Answer: DNS.AnswerJSON[] }) =>
-            r.Answer.map((a) => ({
-              name,
-              type: a.type,
-              ttl: a.TTL,
-              class: DNS.Classes.IN,
-              rdata: a.data,
-            })),
-        ),
-    ]),
-  ),
-  16: async () => {
-    let node = hash(name.slice(0, -1))
-    let chBinary = await getContentHash(provider_url, node)
-    let chText = contentHash.decode(chBinary)
-    return [`dnslink=/ipfs/${chText}`, `contenthash=${chBinary}`].map(
-      (rec): DNS.Answer => ({
-        name,
-        type: DNS.OpCodes.TXT,
+export const DNSLookupIPFSProxy = (query: DNS.QuestionJSON) =>
+  DNS.lookup(IPFS.DefaultProvider, query.type).then(
+    (r: { Answer: DNS.AnswerJSON[] }): DNS.Answer[] =>
+      r.Answer.map((a) => ({
+        name: query.name,
+        type: a.type,
+        ttl: a.TTL,
         class: DNS.Classes.IN,
-        ttl: DNS.DefaultTtl,
-        rdata: rec,
-      }),
-    )
-  },
-})
+        rdata: a.data,
+      })),
+  )
 
-export const ENS = (provider_url: string) => ({
-  hash: hash,
-  getContentHash: (node: string) => getContentHash(provider_url, node),
-  getResolver: (node: string) => getResolver(provider_url)(node),
-  getDNS: (name: string) => getDNS(provider_url, name),
-})
+export class ENS {
+  static REGISTRY_CONTRACT_ADDRESS = '0x314159265dd8dbb310642f98f50c066173c1259b'
+  providerUrl: string
+
+  constructor(providerUrl: string) {
+    this.providerUrl = providerUrl
+  }
+
+  public hash = (name: string) => namehash.normalize(namehash.hash(name))
+
+  public getContentHash = async (node: string) =>
+    methodToFunction(this.providerUrl, {
+      contract: resolver,
+      method: 'contenthash',
+      to: await this.getResolver()(node),
+    })(node)
+
+  public getResolver = () =>
+    methodToFunction(this.providerUrl, {
+      contract: registry,
+      method: 'resolver',
+      to: ENS.REGISTRY_CONTRACT_ADDRESS,
+    })
+
+  public getContentHashText = (name: string) =>
+    this.getContentHash(this.hash(name))
+      .then(chBinary => contentHash.decode(chBinary))
+
+  public getDNS = async (query: DNS.QuestionJSON): Promise<DNS.Answer[]> => {
+    let { name, type } = query
+    switch (type) {
+      case OpCodes.A, OpCodes.AAAA:
+        return DNSLookupIPFSProxy(query)
+      case OpCodes.TXT:
+        let node = this.hash(name.slice(0, -1))
+        let chBinary = await this.getContentHash(node)
+        let chText = contentHash.decode(chBinary)
+        return [`dnslink=/ipfs/${chText}`, `contenthash=${chBinary}`].map(
+          (rec): DNS.Answer => ({
+            name,
+            type,
+            class: DNS.Classes.IN,
+            ttl: DNS.DefaultTtl,
+            rdata: rec,
+          }),
+        )
+      default:
+        throw new Error('Record not implemented')
+    }
+  }
+}
