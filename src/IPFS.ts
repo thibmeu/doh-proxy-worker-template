@@ -1,7 +1,14 @@
-export const Providers = {
-  cloudflare: 'cloudflare-ipfs.com',
-  infura: 'ipfs.infura.io',
-  pinata: 'ipfs.pinata.io',
-}
+/**
+ * IPFS related methods and globals
+ * @packageDocumentation
+ */
 
-export const DefaultProvider = Providers.cloudflare
+/**
+ * Hostname of IPFS providers
+ */
+export enum Providers {
+  Cloudflare = 'cloudflare-ipfs.com',
+  DWeb = 'dweb.link',
+  Infura = 'ipfs.infura.io',
+  Pinata = 'ipfs.pinata.io',
+}

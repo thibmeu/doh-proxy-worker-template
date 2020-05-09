@@ -1,36 +1,67 @@
+/**
+ * Collection of method to interact with Bytes.
+ * There is no Uint8 types in Javascript
+ * @packageDocumentation
+ */
+
+/**
+ * Flatten an array of Uint8Array
+ * The flattening happens in the order of Uint8Array
+ * @param u8s - Array to be flattened
+ * @returns Flattened array
+ */
 export const flattenUint8Array = (u8s: Uint8Array[]): Uint8Array =>
   Uint8Array.from(u8s.map((u8) => Array.from(u8)).flat())
 
-export const Bytes = new Array(8).fill(1).map((v, i) => v << i)
+/** Bytes with a single bit set */
+export const BYTES = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+/** Number of bytes for UINT8 */
+export const MAX_BYTES = 256
+/** Length in bit of a byte */
+export const BYTE_LENGTH = 8
 
+/**
+ * Check if bit at index of byte is set
+ * @param byte - Byte to be checked
+ * @param index - Index of the bit to be checked
+ * @returns True if bit of byte at index is set
+ */
 export const checkBit = (byte: number, index: number) =>
-  (byte & Bytes[index]) === Bytes[index]
+  (byte & BYTES[index]) === BYTES[index]
 
+/**
+ * Decompose a given number `n` in base 256, represented by a Uint8Array. Includes leading 0 if any.
+ * @param n - Number to decompose
+ * @returns A Uint8Array of two values representing number `n` in base 256
+ */
 export const twoBytesBinary = (n: number): Uint8Array =>
-  Uint8Array.from([n >> 8, n % 256])
+  Uint8Array.from([n >> 8, n % MAX_BYTES])
 
+/**
+ * Decompose a given number `n` in base 256, represented by a Uint8Array. Includes leading 0 if any.
+ * @param n - Number to decompose
+ * @returns A Uint8Array of four values representing number `n` in base 256
+ */
 export const fourBytesBinary = (n: number): Uint8Array => {
   let bin = new Uint8Array(4)
   for (let i = 3; i >= 0; i--) {
-    bin[i] = (n >> (8 * i)) % 256
+    bin[i] = (n >> (8 * i)) % MAX_BYTES
   }
   return bin.reverse()
 }
 
-export const BYTE_SIZE = 1 << 8
-
-export const leftShift = (n: number, shift: number) => (n << shift) % BYTE_SIZE
-
-export const uint8ArrayToString = (bin: Uint8Array) =>
-  Array.from(bin)
-    .map((u) => String.fromCharCode(u))
-    .join('')
+/**
+ * Perform a left shift in base 256
+ * @param n - Number to be shifted
+ * @param shift - Shift to be applied
+ * @returns Shifted number
+ */
+export const leftShift = (n: number, shift: number) => (n << shift) % MAX_BYTES
 
 export class Base64Binary {
   static _keyStr =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
 
-  /* will return a  Uint8Array type */
   static decodeArrayBuffer = (input: string) => {
     let bytes = (input.length / 4) * 3
     let ab = new ArrayBuffer(bytes)
@@ -45,7 +76,6 @@ export class Base64Binary {
   }
 
   static decode = (input: string, arrayBuffer: ArrayBuffer) => {
-    //get last chars to see if are valid
     input = Base64Binary.removePaddingChars(input)
     input = Base64Binary.removePaddingChars(input)
 

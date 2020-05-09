@@ -1,15 +1,29 @@
-import { decodeName } from './helpers'
+/**
+ * DNS Opcodes definition, encoding and decoding
+ * @packageDocumentation
+ */
+
+import { encodeName, decodeName } from './helpers'
 import { Answer } from './types'
 import { flattenUint8Array, twoBytesBinary } from '../utils'
 
+/**
+ * Encode data according to the defined opcode to bytes
+ * @param data - Data to be encoded
+ * @dev No check is performed on the data to see if its valid
+ * @returns Encoded data as bytes
+ */
 export const encodeOpcodeData = (data: Answer): Uint8Array => {
-  // TODO: deal with data.type != 0
+  // TODO: deal with data.type != DNS.Classes.IN
+  // Encoding varies depending on the data type
   switch (data.type) {
     case OpCodes.A:
+      // Returns 4 bytes, one per entry of the IPv4
       return Uint8Array.from(
         data.rdata.split('.').map((s) => Number.parseInt(s)),
       )
     case OpCodes.AAAA:
+      // Defined in https://www.ietf.org/rfc/rfc5156.txt
       let bytes = data.rdata.split('::').map((s) =>
         flattenUint8Array(
           s
@@ -18,30 +32,45 @@ export const encodeOpcodeData = (data: Answer): Uint8Array => {
             .map((n) => twoBytesBinary(n)),
         ),
       )
-      // there should be 8 uint16. Add 0s between two groups to fill the gap rfc5156
+      // there should be 8 uint16. Add 0s between two groups to fill the gap
       let filler = Uint8Array.from(
         new Array(16 - (bytes[0].length + bytes[1].length)).fill(0),
       )
+      // returns 16 uint8, which means 8 uint16
       return flattenUint8Array([bytes[0], filler, bytes[1]])
     case OpCodes.TXT:
+      // TXT is a <character-string>, i.e. length on 1 byte and then the raw data
       return new Uint8Array(
         Buffer.from(`${String.fromCharCode(data.rdata.length)}${data.rdata}`),
       )
     case OpCodes.CNAME:
-      return new Uint8Array(Buffer.from(data.rdata))
+      // CNAME encodes a <domain-name>
+      return encodeName(data.rdata)
     case OpCodes.OPT:
+      // OPT is not implemented and returns empty data
       return new Uint8Array()
     default:
+      // TODO: throw a proper error for unimplemented opcodes
       console.log('------ Method not implemented ------')
       return new Uint8Array()
   }
 }
 
+/**
+ * Decode data from bytes according to the defined opcode
+ * @param type - DNS OpCode for the type of data to be decoded
+ * @param data - Bytes to be decoded
+ * @dev Decoding might not require all the data to be read
+ * @dev No check is performed on the data to see if its valid
+ * @returns Decoded data as string
+ */
 export const decodeOpcodeData = (type: OpCodes, data: DataView): string => {
   let decoder = new TextDecoder()
-  // TODO: deal with data.type != 0
+  // TODO: deal with data.type != DNS.Classes.IN
+  // Decoding varies depending on the data type
   switch (type) {
     case OpCodes.A:
+      // Returns 4 bytes written in decimal and separated by `.`
       return [
         data.getUint8(0),
         data.getUint8(1),
@@ -49,6 +78,9 @@ export const decodeOpcodeData = (type: OpCodes, data: DataView): string => {
         data.getUint8(3),
       ].join('.')
     case OpCodes.AAAA:
+      // Defined in https://www.ietf.org/rfc/rfc5156.txt
+      // Returns 8 groups of 16 bits, encoded in hex and separated by `:`
+      // Leading 0s are not included and consecutive 0s are collapsed as `::`.
       return new Array(8)
         .fill(0)
         .map((_, i) => i)
@@ -58,10 +90,13 @@ export const decodeOpcodeData = (type: OpCodes, data: DataView): string => {
         .join(':')
         .replace(/::+/g, '::')
     case OpCodes.TXT:
+      // TXT is a <character-string>, i.e. length on 1 byte and then the raw data
       return decoder.decode(data).slice(1) // TODO: check that decoded[0] === decoded.length - 1
     case OpCodes.CNAME:
-      return decoder.decode(data)
+      // CNAME encodes a <domain-name>
+      return decodeName(data)
     case OpCodes.SOA:
+      // TODO: SOA is encoded as string to make it easier to read. It should be associated to a new data type
       let index = 0
       let mname = decodeName(data)
       index += mname.length + 1
@@ -79,14 +114,19 @@ export const decodeOpcodeData = (type: OpCodes, data: DataView): string => {
         minimum: data.getUint32(index + 16),
       })
     case OpCodes.OPT:
+      // OPT is not implemented and returns empty data
       return ''
     default:
+      // TODO: throw a proper error for unimplemented opcodes
       console.log('------ Method not implemented ------', type, OpCodes[type])
       return ''
   }
 }
 
-// from https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-4
+/**
+ * DNS Parameters as defined in RFC1035
+ * @remarks https://www.ietf.org/rfc/rfc1035.txt
+ */
 export enum OpCodes {
   A = 1,
   NS,

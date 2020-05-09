@@ -1,75 +1,97 @@
+/**
+ * Base method to handle DoH queries
+ * @packageDocumentation
+ */
+
 import { ENS } from './ENS'
 import * as DNS from './dns'
-import { paramsToObject } from './url'
+import { paramsToObject } from './utils'
 import { OpCodes } from './dns'
 
-const resolvers: {
-  [key: string]: (
-    request: Request,
-    query: DNS.QuestionJSON,
-  ) => Promise<Response>
-} = {
-  default: async (request: Request, _: DNS.QuestionJSON): Promise<Response> => {
-    let url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
+/**
+ * Resolves a request on Ethereum blockchain using ENS. It resolves to an IPFS gateway and the content hash is pull from the blockchain.
+ * @param request Raw DoH request
+ * @param query Name and type to resolves.
+ * @returns DoH response formated in the requested format
+ */
+export const EthResolver = async (
+  request: Request,
+  query: DNS.QuestionJSON,
+) => {
+  const ETH_PROVIDER_URL = 'https://cloudflare-eth.com'
+  const ens = new ENS(ETH_PROVIDER_URL)
 
-    const r = new Request(url.href, request)
-    return fetch(r)
-  },
-  '.eth': async (
-    request: Request,
-    query: DNS.QuestionJSON,
-  ): Promise<Response> => {
-    const ETH_PROVIDER_URL = 'https://cloudflare-eth.com'
-    const ens = new ENS(ETH_PROVIDER_URL)
+  let answers = await ens.getDNS(query)
 
-    let answers = await ens.getDNS(query)
-
-    if (DNS.isWireQuery(request)) {
-      let j: DNS.Query = await DNS.dnsMessageToJSON(request)
-      let res: DNS.Query = {
-        ...j,
-        header: {
-          ...j.header,
-          qr: true,
-          aa: true,
-          ra: true,
-          ancount: answers.length,
-          arcount: 0,
-          rcode: DNS.Errors.NoError,
-        },
-        answers,
-      }
-      let encoded = DNS.encode(res)
-
-      return new Response(encoded, {
-        status: 200,
-        headers: { 'content-type': DNS.Format.WIRE },
-      })
-    } else if (DNS.isJSONQuery(request)) {
-      let res: DNS.ResponseJSON = {
-        AD: true, // DNSSEC validation. We do it since we retrieve the record on chain
-        CD: false, // TODO: We assume the client always asks for DNSSEC
-        RA: true, // recursion available. true for DoH
-        RD: true, // recursion desired. true for DoH
-        TC: false, // response is not truncated
-        Status: DNS.Errors.NoError,
-        Question: [query],
-        Answer: answers.map((a) => ({
-          name: a.name.slice(0, -1),
-          type: a.type,
-          TTL: a.ttl,
-          data: a.rdata,
-        })),
-      }
-      return new Response(JSON.stringify(res), {
-        status: 200,
-        headers: { 'content-type': DNS.Format.JSON },
-      })
+  if (DNS.isWireQuery(request)) {
+    let j: DNS.Query = await DNS.dnsMessageToJSON(request)
+    let res: DNS.Query = {
+      ...j,
+      header: {
+        ...j.header,
+        qr: true,
+        aa: true,
+        ra: true,
+        ancount: answers.length,
+        arcount: 0,
+        rcode: DNS.Errors.NoError,
+      },
+      answers,
     }
-    return new Response('Invalid query', { status: 400 })
-  },
+    let encoded = DNS.encode(res)
+
+    return new Response(encoded, {
+      status: 200,
+      headers: { 'content-type': DNS.Format.WIRE },
+    })
+  } else if (DNS.isJSONQuery(request)) {
+    let res: DNS.ResponseJSON = {
+      AD: true, // DNSSEC validation. We do it since we retrieve the record on chain
+      CD: false, // TODO: We assume the client always asks for DNSSEC
+      RA: true, // recursion available. true for DoH
+      RD: true, // recursion desired. true for DoH
+      TC: false, // response is not truncated
+      Status: DNS.Errors.NoError,
+      Question: [query],
+      Answer: answers.map((a) => ({
+        name: a.name.slice(0, -1),
+        type: a.type,
+        TTL: a.ttl,
+        data: a.rdata,
+      })),
+    }
+    return new Response(JSON.stringify(res), {
+      status: 200,
+      headers: { 'content-type': DNS.Format.JSON },
+    })
+  }
+  return new Response('Invalid query', { status: 400 })
 }
 
+/**
+ * Given a valid DoH request, resolves it against a matching resolver
+ * @param request - Raw DoH request. If the current resolver is not able to handle it, it passes it directly to DNS.DOHUrl
+ * @param query - Query can be infered from the request but is passed for efficiency purposes.
+ * @returns DoH response formatted in the requested format, either JSON or Wire
+ */
+export const resolve = async (
+  request: Request,
+  query: DNS.QuestionJSON,
+): Promise<Response> => {
+  if (query.name.endsWith('.eth.')) {
+    return EthResolver(request, query)
+  }
+  let url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
+
+  return fetch(new Request(url.href, request))
+}
+
+/**
+ * Extract the question from a DoH request
+ * @param request DoH request
+ * @returns DNS question formated in JSON
+ * @throws Error if the query not a valid DNS query
+ */
 export const questionFromRequest = async (
   request: Request,
 ): Promise<DNS.QuestionJSON> => {
@@ -82,7 +104,7 @@ export const questionFromRequest = async (
   }
   if (DNS.isJSONQuery(request)) {
     let url = new URL(request.url)
-    let j: DNS.QuestionJSON = paramsToObject(url.search)
+    let j = paramsToObject<DNS.QuestionJSON>(url.search)
     return {
       name: `${j.name}.`,
       type: (OpCodes[j.type] as unknown) as OpCodes,
@@ -91,6 +113,12 @@ export const questionFromRequest = async (
   throw new Error('Invalid content type')
 }
 
+/**
+ * Handle request is a DoH resolver.
+ * @param request - Request received. It should follow DoH standard, i.e. having an `accept` or `content-type` header with a valid dns format
+ * @returns DoH response
+ * @dev Error codes are not standard and are not embedded in the response
+ */
 export const handleRequest = async (request: Request): Promise<Response> => {
   let query: DNS.QuestionJSON
   try {
@@ -103,9 +131,5 @@ export const handleRequest = async (request: Request): Promise<Response> => {
     return new Response('A valid query name must be set.', { status: 400 })
   }
 
-  let resolverKey =
-    Object.keys(resolvers).find((key) => query.name.endsWith(`${key}.`)) ||
-    'default'
-
-  return resolvers[resolverKey](request, query)
+  return resolve(request, query)
 }

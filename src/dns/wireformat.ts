@@ -1,3 +1,8 @@
+/**
+ * DNS Wireformat utilities
+ * @packageDocumentation
+ */
+
 import {
   checkBit,
   twoBytesBinary,
@@ -9,8 +14,16 @@ import { encodeOpcodeData, decodeOpcodeData } from './opcodes'
 import { encodeName, decodeName } from './helpers'
 import { Header, Question, Answer, Query } from './types'
 
+/** Number of bytes in the DNS header */
 export const HEADER_LENGTH = 12
 
+/**
+ * Decode DNS header from bytes
+ * @param bin - Bytes to be decoded
+ * @dev Decoding might not require all the data to be read
+ * @dev No check is performed on the data to see if its valid
+ * @returns Decoded header
+ */
 export const decodeHeader = (bin: DataView): Header => ({
   id: bin.getUint16(0),
   qr: checkBit(bin.getUint8(2), 7),
@@ -27,6 +40,12 @@ export const decodeHeader = (bin: DataView): Header => ({
   arcount: bin.getUint16(10),
 })
 
+/**
+ * Encode DNS header to bytes
+ * @param header - Header to be encoded
+ * @dev No check is performed on the data to see if its valid
+ * @returns Encoded header as bytes
+ */
 export const encodeHeader = (header: Header): Uint8Array =>
   flattenUint8Array([
     twoBytesBinary(header.id),
@@ -44,6 +63,13 @@ export const encodeHeader = (header: Header): Uint8Array =>
     twoBytesBinary(header.arcount),
   ])
 
+/**
+ * Decode 1 question from bytes
+ * @param bin - Bytes to be decoded
+ * @dev Decoding might not require all the data to be read
+ * @dev No check is performed on the data to see if its valid
+ * @returns Decoded question
+ */
 export const decodeQuestion = (
   bin: DataView,
 ): { question: Question; end: number } => {
@@ -59,6 +85,13 @@ export const decodeQuestion = (
   }
 }
 
+/**
+ * Encode 1 question to bytes
+ * @param question - Question to be encoded
+ * @dev No check is performed on the data to see if its valid
+ * @dev TODO: name is not compressed.
+ * @returns Encoded question as bytes
+ */
 export const encodeQuestion = (question: Question): Uint8Array =>
   flattenUint8Array([
     encodeName(question.name),
@@ -66,6 +99,13 @@ export const encodeQuestion = (question: Question): Uint8Array =>
     twoBytesBinary(question.class),
   ])
 
+/**
+ * Decode 1 response data from bytes
+ * @param bin - Bytes to be decoded
+ * @dev Decoding might not require all the data to be read
+ * @dev No check is performed on the data to see if its valid
+ * @returns Decoded data
+ */
 export const decodeResponseData = (
   bin: DataView,
 ): { responseData: Answer; end: number } => {
@@ -94,6 +134,12 @@ export const decodeResponseData = (
   }
 }
 
+/**
+ * Encode 1 response data to bytes
+ * @param data - Data to be encoded
+ * @dev No check is performed on the data to see if its valid
+ * @returns Encoded response data as bytes
+ */
 export const encodeResponseData = (data: Answer) => {
   const encodedData = encodeOpcodeData(data)
   return flattenUint8Array([
@@ -106,11 +152,20 @@ export const encodeResponseData = (data: Answer) => {
   ])
 }
 
+/**
+ * Decode DNS message in wireformat from bytes
+ * @param binary - Bytes to be decoded
+ * @dev Decoding might not require all the data to be read
+ * @dev No check is performed on the data to see if its valid
+ * @returns Decoded message
+ */
 export const decode = (binary: ArrayBuffer): Query => {
+  // Decode header
   let header = decodeHeader(new DataView(binary, 0, HEADER_LENGTH))
 
   let index = HEADER_LENGTH
 
+  // Decode questions
   let questions: Question[] = []
   for (let _ = 0; _ < header.qdcount; _++) {
     let { question, end } = decodeQuestion(new DataView(binary, index))
@@ -118,6 +173,7 @@ export const decode = (binary: ArrayBuffer): Query => {
     index += end
   }
 
+  // Decode all responses data: answers, nameservers and additionals
   let answers: Answer[] = []
   for (let _ = 0; _ < header.ancount; _++) {
     let { responseData, end } = decodeResponseData(new DataView(binary, index))
@@ -146,11 +202,19 @@ export const decode = (binary: ArrayBuffer): Query => {
   }
 }
 
+/**
+ * Encode DNS message to wireformat in bytes
+ * @param query - Message to be encoded
+ * @dev No check is performed on the data to see if its valid
+ * @returns Encoded message as bytes
+ */
 export const encode = (query: Query): Uint8Array =>
   flattenUint8Array([
     encodeHeader(query.header),
     ...query.questions.map(encodeQuestion),
     ...query.answers.map(encodeResponseData),
     ...query.nameServers.map(encodeResponseData),
-    // ...(query.additionals !== undefined ? query.additionals.map(encodeResponseData) : []), // TODO: enable proper additionals
+    ...(query.additionals !== undefined
+      ? query.additionals.map(encodeResponseData)
+      : []),
   ])

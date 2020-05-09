@@ -2,11 +2,12 @@
   "private": true,
   "name": "doh-ethereum",
   "version": "0.1.0",
-  "description": "A template for kick starting a Cloudflare Workers project",
+  "description": "A DNS resolver in a Cloudflare worker. Supports name resolution using ENS",
   "main": "src/index.js",
   "scripts": {
     "build": "wrangler build",
     "deploy": "wrangler publish",
+    "documentation": "typedoc --out dist/docs --exclude **/node_modules/**",
     "format": "prettier --write '**/*.{ts,js,css,json,md}'",
     "start": "wrangler dev",
     "test": "jest"
@@ -22,7 +23,8 @@
     "jest-fetch-mock": "^3.0.3",
     "prettier": "^2.0.5",
     "service-worker-mock": "^2.0.5",
-    "ts-jest": "^25.5.0"
+    "ts-jest": "^25.5.0",
+    "typedoc": "^0.17.6"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^1.0.9",
