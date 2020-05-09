@@ -9,3 +9,4 @@ node_modules/
 .cargo-ok
 dist/
 yarn-error.log
+coverage/
