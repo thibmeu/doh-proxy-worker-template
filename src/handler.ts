@@ -21,7 +21,6 @@ export const resolve = async (
   if (
     BlockList.some((n: string): boolean => n.endsWith(query.name.slice(0, -1)))
   ) {
-    console.log(blocked)
     return new Response('Content blocked.', { status: 401 })
   }
   console.log(query.name)
