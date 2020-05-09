@@ -80,7 +80,8 @@ export class ENS {
   public getDNS = async (query: DNS.QuestionJSON): Promise<DNS.Answer[]> => {
     let { name, type } = query
     switch (type) {
-      case OpCodes.A, OpCodes.AAAA:
+      case OpCodes.A:
+      case OpCodes.AAAA:
         return DNSLookupIPFSProxy(query)
       case OpCodes.TXT:
         let node = this.hash(name.slice(0, -1))
