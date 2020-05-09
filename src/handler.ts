@@ -3,70 +3,10 @@
  * @packageDocumentation
  */
 
-import { ENS } from './ENS'
 import * as DNS from './dns'
 import { paramsToObject } from './utils'
 import { OpCodes } from './dns'
-
-/**
- * Resolves a request on Ethereum blockchain using ENS. It resolves to an IPFS gateway and the content hash is pull from the blockchain.
- * @param request Raw DoH request
- * @param query Name and type to resolves.
- * @returns DoH response formated in the requested format
- */
-export const EthResolver = async (
-  request: Request,
-  query: DNS.QuestionJSON,
-): Promise<Response> => {
-  const ETH_PROVIDER_URL = 'https://cloudflare-eth.com'
-  const ens = new ENS(ETH_PROVIDER_URL)
-
-  const answers = await ens.getDNS(query)
-
-  if (DNS.isWireQuery(request)) {
-    const j: DNS.Query = await DNS.dnsMessageToJSON(request)
-    const res: DNS.Query = {
-      ...j,
-      header: {
-        ...j.header,
-        qr: true,
-        aa: true,
-        ra: true,
-        ancount: answers.length,
-        arcount: j.additionals?.length ?? 0,
-        rcode: DNS.Errors.NoError,
-      },
-      answers,
-    }
-    const encoded = DNS.encode(res)
-
-    return new Response(encoded, {
-      status: 200,
-      headers: { 'content-type': DNS.Format.WIRE },
-    })
-  } else if (DNS.isJSONQuery(request)) {
-    const res: DNS.ResponseJSON = {
-      AD: true, // DNSSEC validation. We do it since we retrieve the record on chain
-      CD: false, // TODO: We assume the client always asks for DNSSEC
-      RA: true, // recursion available. true for DoH
-      RD: true, // recursion desired. true for DoH
-      TC: false, // response is not truncated
-      Status: DNS.Errors.NoError,
-      Question: [query],
-      Answer: answers.map((a) => ({
-        name: a.name.slice(0, -1),
-        type: a.type,
-        TTL: a.ttl,
-        data: a.rdata,
-      })),
-    }
-    return new Response(JSON.stringify(res), {
-      status: 200,
-      headers: { 'content-type': DNS.Format.JSON },
-    })
-  }
-  return new Response('Invalid query', { status: 400 })
-}
+import { BlockList } from './blockList'
 
 /**
  * Given a valid DoH request, resolves it against a matching resolver
@@ -78,9 +18,13 @@ export const resolve = async (
   request: Request,
   query: DNS.QuestionJSON,
 ): Promise<Response> => {
-  if (query.name.endsWith('.eth.')) {
-    return EthResolver(request, query)
+  if (
+    BlockList.some((n: string): boolean => n.endsWith(query.name.slice(0, -1)))
+  ) {
+    console.log(blocked)
+    return new Response('Content blocked.', { status: 401 })
   }
+  console.log(query.name)
   const url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
 
   return fetch(new Request(url.href, request))

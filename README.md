@@ -1,12 +1,12 @@
 # DNS over HTTPS resolver in a Cloudflare Worker
 
 This creates an extensible DNS over HTTPS resolver.
-The default configuration proxies all regular TLDs to Cloudflare DNS and all `.eth` domains are resolved using Ethereum Naming Service
+The default configuration proxies all regular TLDs to Cloudflare DNS. All domains includes in `.txt` files under [lists](./lists) are going to be blacklisted.
 
-A version is available at [kebab.sandwich.workers.dev](https://kebab.sandwich.workers.dev).
+A version is available at [eggplant.sandwich.workers.dev](https://eggplant.sandwich.workers.dev).
 You can see it working using curl
 ```bash
-curl -H 'accept: application/dns-json' 'https://cloudflare-dns.com/dns-query?name=cloudflare.com&type=AAAA'
+curl -H 'accept: application/dns-json' 'https://eggplant.sandwich.workers.dev?name=cloudflare.com&type=AAAA'
 ```
 
 ## Development
