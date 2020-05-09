@@ -56,7 +56,7 @@ export const questionFromRequest = async (
   ) {
     let j: DNS.Query = await DNS.dnsMessageToJSON(request)
     return {
-      name: j.questions[0].name.slice(0, -1),
+      name: j.questions[0].name,
       type: j.questions[0].type,
     }
   }
@@ -84,7 +84,7 @@ export const handleRequest = async (request: Request): Promise<Response> => {
   }
 
   let resolverKey =
-    Object.keys(resolvers).find((key) => query.name.endsWith(key)) || 'default'
+    Object.keys(resolvers).find((key) => query.name.endsWith(`${key}.`)) || 'default'
 
   let result = resolvers[resolverKey](request, query)
 

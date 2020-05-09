@@ -20,11 +20,11 @@ export const encodeOpcodeData = (data: Answer): Uint8Array => {
       )
       // there should be 8 uint16. Add 0s between two groups to fill the gap rfc5156
       let filler = Uint8Array.from(
-        new Array(8 - (bytes[0].length + bytes[1].length)).fill(0),
+        new Array(16 - (bytes[0].length + bytes[1].length)).fill(0),
       )
       return flattenUint8Array([bytes[0], filler, bytes[1]])
     case OpCodes.TXT:
-      return new Uint8Array(Buffer.from(data.rdata))
+      return new Uint8Array(Buffer.from(`${String.fromCharCode(data.rdata.length)}${data.rdata}`))
     case OpCodes.CNAME:
       return new Uint8Array(Buffer.from(data.rdata))
     case OpCodes.OPT:
@@ -56,7 +56,7 @@ export const decodeOpcodeData = (type: OpCodes, data: DataView): string => {
         .join(':')
         .replace(/::+/g, '::')
     case OpCodes.TXT:
-      return decoder.decode(data)
+      return decoder.decode(data).slice(1) // TODO: check that decoded[0] === decoded.length - 1
     case OpCodes.CNAME:
       return decoder.decode(data)
     case OpCodes.SOA:
