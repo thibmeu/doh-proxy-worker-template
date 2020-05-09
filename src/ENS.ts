@@ -23,7 +23,7 @@ import { OpCodes } from './dns'
 const methodToFunction = (
   httpEthereumProvider: string,
   options: { to: string; contract: Interface; method: string },
-) => async (...params: any[]) =>
+) => async (...params: string[]): Promise<string> =>
   fetch(httpEthereumProvider, {
     method: 'POST',
     headers: {
@@ -87,14 +87,15 @@ export class ENS {
    * @returns Normalised namehash
    * @dev https://docs.ens.domains/contract-api-reference/name-processing
    */
-  public hash = (name: string) => namehash.normalize(namehash.hash(name))
+  public hash = (name: string): string =>
+    namehash.normalize(namehash.hash(name))
 
   /**
    * Retrieves the Content hash of the given node from ENS Resolver
    * @param node - Node associated to the resolver to query
    * @returns Content hash stored on ENS
    */
-  public getContentHash = async (node: string) =>
+  public getContentHash = async (node: string): Promise<string> =>
     methodToFunction(this.httpEthereumProvider, {
       contract: ENS.Resolver,
       method: 'contenthash',
@@ -106,7 +107,7 @@ export class ENS {
    * @param node - Node from which to retrieve the resolver
    * @returns Address of the resolver associated with the node
    */
-  public getResolver = (node: string) =>
+  public getResolver = (node: string): Promise<string> =>
     methodToFunction(this.httpEthereumProvider, {
       contract: ENS.Registry,
       method: 'resolver',
@@ -118,7 +119,7 @@ export class ENS {
    * @param name - Name associated to a resolver on ENS. Usually `.eth` but can be `.xyz`, `.kred` or other providers using ENS
    * @returns Decoded content hash. For IPFS, this corresponds to the CID
    */
-  public getContentHashText = (name: string) =>
+  public getContentHashText = (name: string): Promise<string> =>
     this.getContentHash(this.hash(name)).then((chBinary) =>
       contentHash.decode(chBinary),
     )
@@ -131,15 +132,15 @@ export class ENS {
    * @dev If the formentioned EIP goes through, this needs to be updated to handle all DNS records
    */
   public getDNS = async (query: DNS.QuestionJSON): Promise<DNS.Answer[]> => {
-    let { name, type } = query
+    const { name, type } = query
     switch (type) {
       case OpCodes.A:
       case OpCodes.AAAA:
         return this.getDNSIPFSProxy(query)
-      case OpCodes.TXT:
-        let node = this.hash(name.slice(0, -1))
-        let chBinary = await this.getContentHash(node)
-        let chText = contentHash.decode(chBinary)
+      case OpCodes.TXT: {
+        const node = this.hash(name.slice(0, -1))
+        const chBinary = await this.getContentHash(node)
+        const chText = contentHash.decode(chBinary)
         return [`dnslink=/ipfs/${chText}`, `contenthash=${chBinary}`].map(
           (rec): DNS.Answer => ({
             name,
@@ -149,6 +150,7 @@ export class ENS {
             rdata: rec,
           }),
         )
+      }
       default:
         throw new Error('Record not implemented')
     }
@@ -159,7 +161,7 @@ export class ENS {
    * @param query - Name to proxy and type to retrieve from the IPFS gateway
    * @returns DNS answer for the IPFS provider on the request DNS type
    */
-  private getDNSIPFSProxy = (query: DNS.QuestionJSON) =>
+  private getDNSIPFSProxy = (query: DNS.QuestionJSON): Promise<DNS.Answer[]> =>
     DNS.lookup({ name: this.IPFSProvider, type: query.type }).then(
       (r: { Answer: DNS.AnswerJSON[] }): DNS.Answer[] =>
         r.Answer.map((a) => ({

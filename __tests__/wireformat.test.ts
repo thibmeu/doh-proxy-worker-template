@@ -8,7 +8,7 @@ import {
 import { decodeName, encodeName } from '../src/dns/helpers'
 import { Base64Binary } from '../src/utils'
 
-describe('WireFormat', () => {
+describe('wireFormat', () => {
   it('should decode header', () => {
     const binary = 'q80BAAABAAAAAAAAA3d3dwdleGFtcGxlA2NvbQAAAQAB'
     const bin = new DataView(Base64Binary.decodeArrayBuffer(binary))
@@ -39,15 +39,15 @@ describe('WireFormat', () => {
   })
 
   it('should return the proper name on decoding', () => {
-    let name = '\u0007example\u0003com\0'
+    const name = '\u0007example\u0003com\0'
     const encoder = new TextEncoder()
-    let dv = new DataView(encoder.encode(name).buffer)
+    const dv = new DataView(encoder.encode(name).buffer)
 
     expect(decodeName(dv)).toBe('example.com.')
   })
 
   it('should return the proper name on encoding', () => {
-    let name = 'example.com.'
+    const name = 'example.com.'
     const encoder = new TextEncoder()
 
     expect(encodeName(name)).toStrictEqual(

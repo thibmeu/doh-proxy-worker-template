@@ -26,7 +26,7 @@ export const encodeName = (name: string): Uint8Array =>
  */
 export const decodeName = (bin: DataView): string => {
   let name = ''
-  let decoder = new TextDecoder()
+  const decoder = new TextDecoder()
   // Decode while the label to decode is not empty
   for (let i = 0; bin.getUint8(i) !== 0; i += bin.getUint8(i) + 1) {
     name +=

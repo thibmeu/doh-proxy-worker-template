@@ -1,0 +1,27 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint",
+    "prettier",
+    "jest"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier",
+    "prettier/@typescript-eslint",
+    "plugin:jest/recommended",
+    "plugin:jest/style"
+  ],
+  "rules": {
+    "no-console": 1,
+    "prettier/prettier": 2,
+    "no-case-declarations": 1
+  },
+  "env": {
+    "es6": true,
+    "node": true,
+    "worker": true
+  }
+}

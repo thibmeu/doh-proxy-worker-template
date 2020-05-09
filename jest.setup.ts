@@ -3,5 +3,5 @@ enableFetchMocks()
 fetchMock.dontMock()
 
 import makeServiceWorkerEnv from 'service-worker-mock'
-declare var global: any
+declare let global: any
 Object.assign(global, makeServiceWorkerEnv())

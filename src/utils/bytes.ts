@@ -26,7 +26,7 @@ export const BYTE_LENGTH = 8
  * @param index - Index of the bit to be checked
  * @returns True if bit of byte at index is set
  */
-export const checkBit = (byte: number, index: number) =>
+export const checkBit = (byte: number, index: number): boolean =>
   (byte & BYTES[index]) === BYTES[index]
 
 /**
@@ -43,7 +43,7 @@ export const twoBytesBinary = (n: number): Uint8Array =>
  * @returns A Uint8Array of four values representing number `n` in base 256
  */
 export const fourBytesBinary = (n: number): Uint8Array => {
-  let bin = new Uint8Array(4)
+  const bin = new Uint8Array(4)
   for (let i = 3; i >= 0; i--) {
     bin[i] = (n >> (8 * i)) % MAX_BYTES
   }
@@ -56,30 +56,31 @@ export const fourBytesBinary = (n: number): Uint8Array => {
  * @param shift - Shift to be applied
  * @returns Shifted number
  */
-export const leftShift = (n: number, shift: number) => (n << shift) % MAX_BYTES
+export const leftShift = (n: number, shift: number): number =>
+  (n << shift) % MAX_BYTES
 
 export class Base64Binary {
   static _keyStr =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
 
-  static decodeArrayBuffer = (input: string) => {
-    let bytes = (input.length / 4) * 3
-    let ab = new ArrayBuffer(bytes)
+  static decodeArrayBuffer = (input: string): ArrayBuffer => {
+    const bytes = (input.length / 4) * 3
+    const ab = new ArrayBuffer(bytes)
     Base64Binary.decode(input, ab)
 
     return ab
   }
 
-  static removePaddingChars = (input: string) => {
-    var lkey = Base64Binary._keyStr.indexOf(input.charAt(input.length - 1))
+  static removePaddingChars = (input: string): string => {
+    const lkey = Base64Binary._keyStr.indexOf(input.charAt(input.length - 1))
     return lkey === 64 ? input.slice(0, -1) : input
   }
 
-  static decode = (input: string, arrayBuffer: ArrayBuffer) => {
+  static decode = (input: string, arrayBuffer: ArrayBuffer): Uint8Array => {
     input = Base64Binary.removePaddingChars(input)
     input = Base64Binary.removePaddingChars(input)
 
-    let bytes = parseInt('' + (input.length / 4) * 3, 10)
+    const bytes = parseInt('' + (input.length / 4) * 3, 10)
 
     let uarray: Uint8Array
 
@@ -89,14 +90,14 @@ export class Base64Binary {
     let j = 0
     for (let i = 0; i < bytes; i += 3) {
       //get the 3 octects in 4 ascii chars
-      let enc1 = Base64Binary._keyStr.indexOf(input.charAt(j++))
-      let enc2 = Base64Binary._keyStr.indexOf(input.charAt(j++))
-      let enc3 = Base64Binary._keyStr.indexOf(input.charAt(j++))
-      let enc4 = Base64Binary._keyStr.indexOf(input.charAt(j++))
+      const enc1 = Base64Binary._keyStr.indexOf(input.charAt(j++))
+      const enc2 = Base64Binary._keyStr.indexOf(input.charAt(j++))
+      const enc3 = Base64Binary._keyStr.indexOf(input.charAt(j++))
+      const enc4 = Base64Binary._keyStr.indexOf(input.charAt(j++))
 
-      let chr1 = (enc1 << 2) | (enc2 >> 4)
-      let chr2 = ((enc2 & 15) << 4) | (enc3 >> 2)
-      let chr3 = ((enc3 & 3) << 6) | enc4
+      const chr1 = (enc1 << 2) | (enc2 >> 4)
+      const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2)
+      const chr3 = ((enc3 & 3) << 6) | enc4
 
       uarray[i] = chr1
       if (enc3 != 64) uarray[i + 1] = chr2

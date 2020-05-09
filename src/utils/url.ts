@@ -21,7 +21,7 @@ export const paramsToObject = <T>(query: string): T =>
  * @param query - Parameters to be passed
  * @returns Search query. Format: <param1=value1>(&<param2=value2>)*
  */
-export const objectToParams = <T>(o: T) =>
+export const objectToParams = <T>(o: T): string =>
   '?' +
   Object.entries(o)
     .map((c) => c.map((p) => encodeURIComponent(p)).join('='))

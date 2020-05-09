@@ -17,15 +17,15 @@ import { OpCodes } from './dns'
 export const EthResolver = async (
   request: Request,
   query: DNS.QuestionJSON,
-) => {
+): Promise<Response> => {
   const ETH_PROVIDER_URL = 'https://cloudflare-eth.com'
   const ens = new ENS(ETH_PROVIDER_URL)
 
-  let answers = await ens.getDNS(query)
+  const answers = await ens.getDNS(query)
 
   if (DNS.isWireQuery(request)) {
-    let j: DNS.Query = await DNS.dnsMessageToJSON(request)
-    let res: DNS.Query = {
+    const j: DNS.Query = await DNS.dnsMessageToJSON(request)
+    const res: DNS.Query = {
       ...j,
       header: {
         ...j.header,
@@ -38,14 +38,14 @@ export const EthResolver = async (
       },
       answers,
     }
-    let encoded = DNS.encode(res)
+    const encoded = DNS.encode(res)
 
     return new Response(encoded, {
       status: 200,
       headers: { 'content-type': DNS.Format.WIRE },
     })
   } else if (DNS.isJSONQuery(request)) {
-    let res: DNS.ResponseJSON = {
+    const res: DNS.ResponseJSON = {
       AD: true, // DNSSEC validation. We do it since we retrieve the record on chain
       CD: false, // TODO: We assume the client always asks for DNSSEC
       RA: true, // recursion available. true for DoH
@@ -81,7 +81,7 @@ export const resolve = async (
   if (query.name.endsWith('.eth.')) {
     return EthResolver(request, query)
   }
-  let url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
+  const url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
 
   return fetch(new Request(url.href, request))
 }
@@ -96,15 +96,15 @@ export const questionFromRequest = async (
   request: Request,
 ): Promise<DNS.QuestionJSON> => {
   if (DNS.isWireQuery(request)) {
-    let j: DNS.Query = await DNS.dnsMessageToJSON(request)
+    const j: DNS.Query = await DNS.dnsMessageToJSON(request)
     return {
       name: j.questions[0].name,
       type: j.questions[0].type,
     }
   }
   if (DNS.isJSONQuery(request)) {
-    let url = new URL(request.url)
-    let j = paramsToObject<DNS.QuestionJSON>(url.search)
+    const url = new URL(request.url)
+    const j = paramsToObject<DNS.QuestionJSON>(url.search)
     return {
       name: `${j.name}.`,
       type: (OpCodes[j.type] as unknown) as OpCodes,

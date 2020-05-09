@@ -31,11 +31,11 @@ export enum Format {
  * @returns DoH JSON answer for the given query
  */
 export const lookup = async (query: QuestionJSON): Promise<ResponseJSON> => {
-  let search = objectToParams({
+  const search = objectToParams({
     name: query.name,
     type: OpCodes[query.type],
   })
-  let options = {
+  const options = {
     method: 'GET',
     headers: {
       accept: Format.JSON,
@@ -44,7 +44,7 @@ export const lookup = async (query: QuestionJSON): Promise<ResponseJSON> => {
   return fetch(`${DOHUrl}${search}`, options)
     .then((r: Response) => r.text()) // because dns-json is not json
     .then((r: string) =>
-      decodeURIComponent(r).replace(/\\\//gi, '/').replace(/\\\:/gi, ':'),
+      decodeURIComponent(r).replace(/\\\//gi, '/').replace(/\\:/gi, ':'),
     )
     .then((r: string): ResponseJSON => JSON.parse(r))
 }
@@ -56,18 +56,20 @@ export const lookup = async (query: QuestionJSON): Promise<ResponseJSON> => {
  * @dev Does not check if the request is valid
  */
 export const dnsMessageToJSON = async (request: Request): Promise<Query> => {
-  let url = new URL(request.url)
+  const url = new URL(request.url)
   let bin: ArrayBuffer
   // DoH only supports `GET` and `POST`
   switch (request.method) {
-    case 'GET':
-      let dns = paramsToObject<QueryGET>(url.search).dns
+    case 'GET': {
+      const dns = paramsToObject<QueryGET>(url.search).dns
       bin = Base64Binary.decodeArrayBuffer(dns)
       break
-    case 'POST':
-      let clone = request.clone()
+    }
+    case 'POST': {
+      const clone = request.clone()
       bin = await clone.arrayBuffer()
       break
+    }
     default:
       throw new Error('Bad Request')
   }
@@ -79,7 +81,7 @@ export const dnsMessageToJSON = async (request: Request): Promise<Query> => {
  * @param request - HTTP request
  * @returns true if the request asks for wireformat
  */
-export const isWireQuery = (request: Request) =>
+export const isWireQuery = (request: Request): boolean =>
   request.headers.get('content-type') === Format.WIRE ||
   request.headers.get('accept') === Format.WIRE
 
@@ -88,6 +90,6 @@ export const isWireQuery = (request: Request) =>
  * @param request - HTTP request
  * @returns true if the request asks for JSON format
  */
-export const isJSONQuery = (request: Request) =>
+export const isJSONQuery = (request: Request): boolean =>
   request.headers.get('content-type') === Format.JSON ||
   request.headers.get('accept') === Format.JSON

@@ -73,7 +73,7 @@ export const encodeHeader = (header: Header): Uint8Array =>
 export const decodeQuestion = (
   bin: DataView,
 ): { question: Question; end: number } => {
-  let name = decodeName(bin)
+  const name = decodeName(bin)
 
   return {
     question: {
@@ -112,13 +112,13 @@ export const decodeResponseData = (
   if (bin.byteLength <= 0) {
     throw 'Cannot decode data. Binary is invalid.'
   }
-  let name = decodeName(bin)
-  let nameEnd = name.length + 1 // there is no dot at the beginning while there is a one byte number
-  let rdlength = bin.getUint16(nameEnd + 8)
-  let end = nameEnd + 10 + rdlength
+  const name = decodeName(bin)
+  const nameEnd = name.length + 1 // there is no dot at the beginning while there is a one byte number
+  const rdlength = bin.getUint16(nameEnd + 8)
+  const end = nameEnd + 10 + rdlength
 
-  let type = bin.getUint16(nameEnd)
-  let data = decodeOpcodeData(
+  const type = bin.getUint16(nameEnd)
+  const data = decodeOpcodeData(
     type,
     new DataView(bin.buffer.slice(bin.byteOffset + nameEnd + 10, end)),
   )
@@ -140,7 +140,7 @@ export const decodeResponseData = (
  * @dev No check is performed on the data to see if its valid
  * @returns Encoded response data as bytes
  */
-export const encodeResponseData = (data: Answer) => {
+export const encodeResponseData = (data: Answer): Uint8Array => {
   const encodedData = encodeOpcodeData(data)
   return flattenUint8Array([
     encodeName(data.name),
@@ -161,14 +161,14 @@ export const encodeResponseData = (data: Answer) => {
  */
 export const decode = (binary: ArrayBuffer): Query => {
   // Decode header
-  let header = decodeHeader(new DataView(binary, 0, HEADER_LENGTH))
+  const header = decodeHeader(new DataView(binary, 0, HEADER_LENGTH))
 
   let index = HEADER_LENGTH
 
   // Decode questions
   let questions: Question[] = []
   for (let _ = 0; _ < header.qdcount; _++) {
-    let { question, end } = decodeQuestion(new DataView(binary, index))
+    const { question, end } = decodeQuestion(new DataView(binary, index))
     questions = [...questions, question]
     index += end
   }
@@ -176,19 +176,25 @@ export const decode = (binary: ArrayBuffer): Query => {
   // Decode all responses data: answers, nameservers and additionals
   let answers: Answer[] = []
   for (let _ = 0; _ < header.ancount; _++) {
-    let { responseData, end } = decodeResponseData(new DataView(binary, index))
+    const { responseData, end } = decodeResponseData(
+      new DataView(binary, index),
+    )
     answers = [...answers, responseData]
     index += end
   }
   let nameServers: Answer[] = []
   for (let _ = 0; _ < header.nscount; _++) {
-    let { responseData, end } = decodeResponseData(new DataView(binary, index))
+    const { responseData, end } = decodeResponseData(
+      new DataView(binary, index),
+    )
     nameServers = [...nameServers, responseData]
     index += end
   }
   let additionals: Answer[] = []
   for (let _ = 0; _ < header.arcount; _++) {
-    let { responseData, end } = decodeResponseData(new DataView(binary, index))
+    const { responseData, end } = decodeResponseData(
+      new DataView(binary, index),
+    )
     additionals = [...additionals, responseData]
     index += end
   }
