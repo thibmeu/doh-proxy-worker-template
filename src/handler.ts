@@ -9,10 +9,7 @@ const resolvers: {
     query: DNS.QuestionJSON,
   ) => Promise<Response>
 } = {
-  default: async (
-    request: Request,
-    query: DNS.QuestionJSON,
-  ): Promise<Response> => {
+  default: async (request: Request, _: DNS.QuestionJSON): Promise<Response> => {
     let url = new URL(`${DNS.DOHUrl}${new URL(request.url).search}`)
 
     const r = new Request(url.href, request)
@@ -26,46 +23,69 @@ const resolvers: {
     const ens = ENS(ETH_PROVIDER_URL)
 
     let answers = await ens.getDNS(query.name)[query.type]()
-    let j: DNS.Query = await DNS.dnsMessageToJSON(request)
-    let res: DNS.Query = {
-      ...j,
-      header: {
-        ...j.header,
-        qr: true,
-        aa: true,
-        ra: true,
-        ancount: answers.length,
-        arcount: 0,
-        rcode: 0, // No Error
-      },
-      answers,
-    }
 
-    return new Response(JSON.stringify(res), {
-      headers: request.headers,
-    })
+    if (DNS.isWireQuery(request)) {
+      let j: DNS.Query = await DNS.dnsMessageToJSON(request)
+      let res: DNS.Query = {
+        ...j,
+        header: {
+          ...j.header,
+          qr: true,
+          aa: true,
+          ra: true,
+          ancount: answers.length,
+          arcount: 0,
+          rcode: DNS.Errors.NoError,
+        },
+        answers,
+      }
+      let encoded = DNS.encode(res)
+
+      return new Response(encoded, {
+        status: 200,
+        headers: { 'content-type': DNS.Format.WIRE },
+      })
+    } else if (DNS.isJSONQuery(request)) {
+      let res: DNS.ResponseJSON = {
+        AD: true, // DNSSEC validation. We do it since we retrieve the record on chain
+        CD: false, // TODO: We assume the client always asks for DNSSEC
+        RA: true, // recursion available. true for DoH
+        RD: true, // recursion desired. true for DoH
+        TC: false, // response is not truncated
+        Status: DNS.Errors.NoError,
+        Question: [query],
+        Answer: answers.map((a) => ({
+          name: a.name.slice(0, -1),
+          type: a.type,
+          TTL: a.ttl,
+          data: a.rdata,
+        })),
+      }
+      return new Response(JSON.stringify(res), {
+        status: 200,
+        headers: { 'content-type': DNS.Format.JSON },
+      })
+    }
+    return new Response('Invalid query', { status: 400 })
   },
 }
 
 export const questionFromRequest = async (
   request: Request,
 ): Promise<DNS.QuestionJSON> => {
-  if (
-    request.headers.get('content-type') === 'application/dns-message' ||
-    request.headers.get('accept') === 'application/dns-message'
-  ) {
+  if (DNS.isWireQuery(request)) {
     let j: DNS.Query = await DNS.dnsMessageToJSON(request)
     return {
       name: j.questions[0].name,
       type: j.questions[0].type,
     }
   }
-  if (request.headers.get('accept') === 'application/dns-json') {
+  if (DNS.isJSONQuery(request)) {
     let url = new URL(request.url)
     let j: DNS.QuestionJSON = paramsToObject(url.search)
     return {
-      name: j.name,
-      type: OpCodes[j.type] as unknown as OpCodes,
+      name: `${j.name}.`,
+      type: (OpCodes[j.type] as unknown) as OpCodes,
     }
   }
   throw new Error('Invalid content type')
@@ -84,27 +104,8 @@ export const handleRequest = async (request: Request): Promise<Response> => {
   }
 
   let resolverKey =
-    Object.keys(resolvers).find((key) => query.name.endsWith(`${key}.`)) || 'default'
+    Object.keys(resolvers).find((key) => query.name.endsWith(`${key}.`)) ||
+    'default'
 
-  let result = resolvers[resolverKey](request, query)
-
-  if (
-    request.headers.get('accept') === 'application/dns-json' ||
-    resolverKey !== '.eth'
-  ) {
-    return result
-  }
-  if (
-    request.headers.get('content-type') === 'application/dns-message' ||
-    request.headers.get('accept') === 'application/dns-message'
-  ) {
-    let resultJ: DNS.Query = await result.then((r) => r.json())
-    let encoded = DNS.encode(resultJ)
-
-    return new Response(encoded, {
-      status: 200,
-      headers: { 'content-type': 'application/dns-message' },
-    })
-  }
-  return new Response('Invalid query', { status: 400 })
+  return resolvers[resolverKey](request, query)
 }

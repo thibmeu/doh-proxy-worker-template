@@ -2,6 +2,7 @@ import { decode } from './wireformat'
 export * from './wireformat'
 import { OpCodes } from './opcodes'
 export * from './opcodes'
+export * from './errors'
 export * from './classes'
 export * from './types'
 
@@ -13,7 +14,11 @@ export const DOHUrl = 'https://cloudflare-dns.com/dns-query'
 
 export const DefaultTtl = 3600
 
-// TODO: DNS Wireformat
+export enum Format {
+  JSON = 'application/dns-json',
+  WIRE = 'application/dns-message',
+}
+
 export const lookup = async (
   name: string,
   type: OpCodes,
@@ -29,7 +34,7 @@ export const lookup = async (
   let options = {
     method: json ? 'GET' : 'POST',
     headers: {
-      accept: json ? 'application/dns-json' : 'application/dns-message',
+      accept: json ? Format.JSON : Format.WIRE,
     },
   }
   return fetch(`${DOHUrl}?${query}`, options)
@@ -54,3 +59,11 @@ export const dnsMessageToJSON = async (request: Request): Promise<Query> => {
   }
   return decode(bin)
 }
+
+export const isWireQuery = (request: Request) =>
+  request.headers.get('content-type') === Format.WIRE ||
+  request.headers.get('accept') === Format.WIRE
+
+export const isJSONQuery = (request: Request) =>
+  request.headers.get('content-type') === Format.JSON ||
+  request.headers.get('accept') === Format.JSON

@@ -24,7 +24,9 @@ export const encodeOpcodeData = (data: Answer): Uint8Array => {
       )
       return flattenUint8Array([bytes[0], filler, bytes[1]])
     case OpCodes.TXT:
-      return new Uint8Array(Buffer.from(`${String.fromCharCode(data.rdata.length)}${data.rdata}`))
+      return new Uint8Array(
+        Buffer.from(`${String.fromCharCode(data.rdata.length)}${data.rdata}`),
+      )
     case OpCodes.CNAME:
       return new Uint8Array(Buffer.from(data.rdata))
     case OpCodes.OPT:
